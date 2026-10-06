@@ -516,3 +516,212 @@ stages:
       hash: md5
       md5: e9e47cdbb0fbae6667622121663652f2
       size: 2061
+  autolabel@v3:
+    cmd: python scripts/20_autolabel.py --dataset v3
+    deps:
+    - path: configs/labeling.yaml
+      hash: md5
+      md5: 032902dac550b8b56bd8303369c41815
+      size: 1424
+    - path: data/raw/v3
+      hash: md5
+      md5: 65467e5c4fb4f7cd458fc74cf469dd20.dir
+      size: 518378882
+      nfiles: 5314
+    - path: scripts/20_autolabel.py
+      hash: md5
+      md5: d64098c9c9c57f1ffcfe378a9a15d0f5
+      size: 3901
+    - path: src/driveloop/data/autolabel.py
+      hash: md5
+      md5: c79fc6c583b593b97492a2e47915cb08
+      size: 8410
+    - path: src/driveloop/data/geometry.py
+      hash: md5
+      md5: df3447395a5bdf65ce7d3c03b029726d
+      size: 3132
+    outs:
+    - path: data/processed/v3/labels
+      hash: md5
+      md5: facb0d4f1d267e3d152cf331897a8dc9.dir
+      size: 1838545
+      nfiles: 17
+  metadata@v3:
+    cmd: python scripts/22_build_metadata.py --dataset v3
+    deps:
+    - path: configs/qc.yaml
+      hash: md5
+      md5: 75a995c6155b5d31094291b0626d8d2f
+      size: 548
+    - path: data/processed/v3/labels
+      hash: md5
+      md5: facb0d4f1d267e3d152cf331897a8dc9.dir
+      size: 1838545
+      nfiles: 17
+    - path: data/raw/v3
+      hash: md5
+      md5: 65467e5c4fb4f7cd458fc74cf469dd20.dir
+      size: 518378882
+      nfiles: 5314
+    - path: scripts/22_build_metadata.py
+      hash: md5
+      md5: 0136d8f0822e7e3a6478fb43f9c1708a
+      size: 4344
+    - path: src/driveloop/data/metadata.py
+      hash: md5
+      md5: bf38d0f7c52d7c929d90b4b21a7a4b46
+      size: 6979
+    outs:
+    - path: data/processed/v3/frames.parquet
+      hash: md5
+      md5: a61bbac89c369bff51a8aaad9269a188
+      size: 131687
+    - path: data/processed/v3/objects.parquet
+      hash: md5
+      md5: a07a9c8c1726a78afcb1676957a2a3de
+      size: 148337
+    - path: data/processed/v3/qc_report.json
+      hash: md5
+      md5: fb97f6b1b7f171770c122cacb3ce0c65
+      size: 659
+  dedup@v3:
+    cmd: python scripts/23_dedup.py --dataset v3 --samples 0
+    deps:
+    - path: configs/dedup.yaml
+      hash: md5
+      md5: 1b7bcd563d2e90eacb8d9d39ac754680
+      size: 715
+    - path: data/processed/v3/frames.parquet
+      hash: md5
+      md5: a61bbac89c369bff51a8aaad9269a188
+      size: 131687
+    - path: scripts/23_dedup.py
+      hash: md5
+      md5: b0106932856bfbeac0098953a8769ca1
+      size: 4088
+    - path: src/driveloop/data/dedup.py
+      hash: md5
+      md5: b9ac4a9bd91da90d04abbaf2b6109a78
+      size: 2120
+    outs:
+    - path: data/processed/v3/dedup.parquet
+      hash: md5
+      md5: a81c858c1ba00953c569a3a609af66c5
+      size: 15859
+    - path: data/processed/v3/dedup_report.json
+      hash: md5
+      md5: 05a91fd5817fbd9c9a2413da3c332bab
+      size: 723
+  export_v3:
+    cmd: python scripts/24_export_yolo.py --config configs/export/v3.yaml
+    deps:
+    - path: configs/export/v3.yaml
+      hash: md5
+      md5: 620b2517bd6143a982574f8eae0db161
+      size: 1387
+    - path: data/processed/v1/dedup.parquet
+      hash: md5
+      md5: 7b5fc8e4b673e5598701e0cfeb38a031
+      size: 14407
+    - path: data/processed/v1/frames.parquet
+      hash: md5
+      md5: 4a02b46fa77c17aadf81fa8bf56ab860
+      size: 126670
+    - path: data/processed/v1/labels
+      hash: md5
+      md5: 16e9de27dded14a23c1274e32097af83.dir
+      size: 1743888
+      nfiles: 17
+    - path: data/processed/v1/objects.parquet
+      hash: md5
+      md5: de7c4c28f8cf99eefb448b71f83bec7d
+      size: 146525
+    - path: data/processed/v2/dedup.parquet
+      hash: md5
+      md5: 365bc43fd8cf54dd2748b26ff0698b7f
+      size: 20328
+    - path: data/processed/v2/frames.parquet
+      hash: md5
+      md5: bb336890ae92660efa208cfb619d5806
+      size: 183714
+    - path: data/processed/v2/labels
+      hash: md5
+      md5: 2015f14c290cc09646729fa03404d31b.dir
+      size: 4631405
+      nfiles: 25
+    - path: data/processed/v2/objects.parquet
+      hash: md5
+      md5: 6208f0ee7ad5dd675fdcaf99ac6a85cf
+      size: 284300
+    - path: data/processed/v3/dedup.parquet
+      hash: md5
+      md5: a81c858c1ba00953c569a3a609af66c5
+      size: 15859
+    - path: data/processed/v3/frames.parquet
+      hash: md5
+      md5: a61bbac89c369bff51a8aaad9269a188
+      size: 131687
+    - path: data/processed/v3/labels
+      hash: md5
+      md5: facb0d4f1d267e3d152cf331897a8dc9.dir
+      size: 1838545
+      nfiles: 17
+    - path: data/processed/v3/objects.parquet
+      hash: md5
+      md5: a07a9c8c1726a78afcb1676957a2a3de
+      size: 148337
+    - path: data/raw/v1
+      hash: md5
+      md5: 71bd60df4924e3351b02128789f6e996.dir
+      size: 448055994
+      nfiles: 4832
+    - path: data/raw/v2
+      hash: md5
+      md5: 9bc5ce4dfffe410ae85f139338021827.dir
+      size: 796698245
+      nfiles: 8356
+    - path: data/raw/v3
+      hash: md5
+      md5: 65467e5c4fb4f7cd458fc74cf469dd20.dir
+      size: 518378882
+      nfiles: 5314
+    - path: scripts/24_export_yolo.py
+      hash: md5
+      md5: dced3665b456ff9c702de2e8ca5f6a73
+      size: 7090
+    - path: src/driveloop/data/export.py
+      hash: md5
+      md5: ea2eea3b2dfb6555765d641d65fa14c3
+      size: 2110
+    outs:
+    - path: data/datasets/v3
+      hash: md5
+      md5: 6b1132d8d27b58f645d382a6996b4988.dir
+      size: 1054814942
+      nfiles: 11175
+  report@v3:
+    cmd: python scripts/25_distribution_report.py --dataset v3 --config 
+      configs/report.yaml
+    deps:
+    - path: configs/report.yaml
+      hash: md5
+      md5: 4846f89cbb325c20efff7a9b1427151c
+      size: 777
+    - path: data/datasets/v3
+      hash: md5
+      md5: 6b1132d8d27b58f645d382a6996b4988.dir
+      size: 1054814942
+      nfiles: 11175
+    - path: scripts/25_distribution_report.py
+      hash: md5
+      md5: 04cff24b240259425097d51ec0d7aabe
+      size: 14113
+    outs:
+    - path: data/reports/v3/distribution.html
+      hash: md5
+      md5: 37740c9827223bcc0318f7e240407bc3
+      size: 20025
+    - path: data/reports/v3/distribution_report.json
+      hash: md5
+      md5: c6d03175fbee479ea556693ebd23f574
+      size: 1667

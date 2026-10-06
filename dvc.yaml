@@ -5,7 +5,7 @@
 # 실행 전 conda activate driveloop (cmd의 python이 이 환경을 가리켜야 함)
 stages:
   autolabel:
-    foreach: [v1, v2]
+    foreach: [v1, v2, v3]
     do:
       cmd: python scripts/20_autolabel.py --dataset ${item}
       deps:
@@ -18,7 +18,7 @@ stages:
         - data/processed/${item}/labels
 
   metadata:
-    foreach: [v1, v2]
+    foreach: [v1, v2, v3]
     do:
       cmd: python scripts/22_build_metadata.py --dataset ${item}
       deps:
@@ -35,7 +35,7 @@ stages:
             cache: false
 
   dedup:
-    foreach: [v1, v2]
+    foreach: [v1, v2, v3]
     do:
       cmd: python scripts/23_dedup.py --dataset ${item} --samples 0
       deps:
@@ -84,8 +84,33 @@ stages:
     outs:
       - data/datasets/v2
 
+  # 데이터셋 v3 = 원본 v1 + v2 + v3 (Town02·04 추가), test는 v2와 같은 Town05
+  export_v3:
+    cmd: python scripts/24_export_yolo.py --config configs/export/v3.yaml
+    deps:
+      - data/raw/v1
+      - data/raw/v2
+      - data/raw/v3
+      - data/processed/v1/labels
+      - data/processed/v1/frames.parquet
+      - data/processed/v1/objects.parquet
+      - data/processed/v1/dedup.parquet
+      - data/processed/v2/labels
+      - data/processed/v2/frames.parquet
+      - data/processed/v2/objects.parquet
+      - data/processed/v2/dedup.parquet
+      - data/processed/v3/labels
+      - data/processed/v3/frames.parquet
+      - data/processed/v3/objects.parquet
+      - data/processed/v3/dedup.parquet
+      - scripts/24_export_yolo.py
+      - src/driveloop/data/export.py
+      - configs/export/v3.yaml
+    outs:
+      - data/datasets/v3
+
   report:
-    foreach: [v1, v2]
+    foreach: [v1, v2, v3]
     do:
       cmd: python scripts/25_distribution_report.py --dataset ${item} --config configs/report.yaml
       deps:

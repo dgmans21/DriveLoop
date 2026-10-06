@@ -1,0 +1,87 @@
+{
+  "dataset": "v3",
+  "splits": [
+    "train",
+    "val",
+    "test"
+  ],
+  "images": {
+    "train": 3578,
+    "val": 1193,
+    "test": 815
+  },
+  "objects": {
+    "vehicle": {
+      "train": 5599,
+      "val": 1389,
+      "test": 1068
+    },
+    "tl_red": {
+      "train": 1843,
+      "val": 973,
+      "test": 2920
+    },
+    "tl_green": {
+      "train": 794,
+      "val": 423,
+      "test": 649
+    },
+    "tl_yellow": {
+      "train": 380,
+      "val": 173,
+      "test": 509
+    }
+  },
+  "tl_small_ratio": 0.251,
+  "tl_size_hist": {
+    "tl_red": {
+      "<8": 62,
+      "8–12": 568,
+      "12–16": 1065,
+      "16–24": 1887,
+      "24–40": 1237,
+      "40+": 917
+    },
+    "tl_green": {
+      "<8": 21,
+      "8–12": 90,
+      "12–16": 215,
+      "16–24": 638,
+      "24–40": 463,
+      "40+": 439
+    },
+    "tl_yellow": {
+      "<8": 1,
+      "8–12": 23,
+      "12–16": 133,
+      "16–24": 299,
+      "24–40": 371,
+      "40+": 235
+    }
+  },
+  "ignored": {
+    "vehicle:too_few_px": 4184,
+    "tl_red:lamp_dark": 484,
+    "vehicle:too_small": 399,
+    "traffic_light:occluded": 387,
+    "tl_yellow:lamp_dark": 96,
+    "tl_green:lamp_dark": 86,
+    "traffic_light:too_small": 75,
+    "tl_red:qc_flag": 23,
+    "tl_green:qc_flag": 11,
+    "tl_red:lamp_saturated": 7,
+    "tl_yellow:qc_flag": 6,
+    "traffic_light:too_far": 2
+  },
+  "num_gaps": 1,
+  "gaps": [
+    {
+      "kind": "class_total",
+      "cls": "tl_yellow",
+      "split": "train",
+      "have": 380,
+      "target": 500,
+      "text": "노란불 train 380개 < 목표 500"
+    }
+  ]
+}

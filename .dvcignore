@@ -1,3 +1,6 @@
 # Add patterns of files dvc should ignore, which could improve
 # the performance. Learn more at
 # https://dvc.org/doc/user-guide/dvcignore
+
+# ultralytics가 학습·평가 때 데이터셋 폴더에 쓰는 라벨 캐시 (언제든 재생성됨) → 데이터셋 해시에서 제외
+/data/datasets/*/labels/*.cache

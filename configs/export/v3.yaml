@@ -7,7 +7,9 @@ classes: [vehicle, tl_red, tl_yellow, tl_green]
 test_maps: [Town05]
 
 # 에피소드 단위 분할. v1·v2 검증 에피소드는 그대로 두고, 원본 v3에서 맵마다 2개씩 추가
-# (날씨×시간 4조합을 하나씩). 수집 후 노란불이 0~2장인 에피소드면 같은 조건의 다른 교통량으로 교체할 것
+# (날씨×시간 4조합을 하나씩). 수집 후 신호가 거의 없는 에피소드는 같은 조건의 다른 교통량으로 교체:
+#   Town02_clear_noon_high_r0 (dedup 후 신호 5개·노랑 0) → Town02_clear_noon_low_r0 (노랑 13)
+#   Town04_clear_night_low_r0 (신호 0개, 외곽 고속도로 구간) → Town04_clear_night_high_r0 (노랑 42)
 val_episodes:
   # 원본 v1
   - Town01_clear_noon_high_r0
@@ -20,9 +22,9 @@ val_episodes:
   - Town01_rain_noon_low_r1
   - Town03_rain_night_high_r1
   # 원본 v3
-  - Town02_clear_noon_high_r0
+  - Town02_clear_noon_low_r0
   - Town02_rain_night_low_r0
-  - Town04_clear_night_low_r0
+  - Town04_clear_night_high_r0
   - Town04_rain_noon_high_r0
 
 use_dedup: true
