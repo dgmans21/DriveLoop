@@ -1,0 +1,13 @@
+# 품질 검사 규칙. 플래그만 붙이고 삭제하지 않는다 (제외 여부는 내보내기 단계에서 결정)
+version: 1
+
+image:
+  min_mean_luma: 4.0       # 평균 밝기(0~255)가 이보다 낮으면 렌더 실패 의심 (밤 장면 분포 보고 조정)
+  min_std_luma: 3.0        # 거의 단색이면 렌더 실패 의심
+
+vehicle:
+  max_box_area_ratio: 0.8  # 화면 대부분을 덮는 차량 박스는 의심
+
+traffic_light:
+  min_aspect: 1.2          # 높이/너비. 신호등 헤드는 세로로 긴 모양
+  max_aspect: 6.0

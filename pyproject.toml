@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "driveloop"
+version = "0.1.0"
+description = "CARLA 기반 신호등/장애물 대응 주행 + 인지 데이터 파이프라인 포트폴리오"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "carla==0.9.16",   # 서버(CARLA 패키지) 버전과 반드시 일치해야 함
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "pillow>=10",
+    "pyarrow>=14",
+    "pygame>=2.5",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

@@ -1,0 +1,33 @@
+# 데이터셋 v1 수집 매트릭스: maps × weathers × times × traffic × repeats 조합을 모두 수집
+# 조건을 추가해도 기존 에피소드의 seed와 ID는 바뀌지 않는다 (ID 기반 seed)
+name: v1
+output_root: data/raw
+seed: 0
+
+maps: [Town01, Town03]
+
+# CARLA WeatherParameters 필드. times 값이 weathers 값 위에 덮어써진다
+weathers:
+  clear: {cloudiness: 10, precipitation: 0, precipitation_deposits: 0, wetness: 0, fog_density: 0}
+  rain:  {cloudiness: 90, precipitation: 70, precipitation_deposits: 60, wetness: 80, fog_density: 5}
+times:
+  noon:  {sun_altitude_angle: 60}
+  night: {sun_altitude_angle: -40}
+
+traffic:                    # 레벨 → NPC 차량 수
+  low: 15
+  high: 50
+
+repeats: 1
+frames_per_episode: 150     # 저장 프레임 수
+capture_interval: 0.5       # 초, 저장 간격 (연속 프레임 중복 줄이기)
+warmup_seconds: 3.0         # 스폰 직후 안정화 구간 (저장 안 함)
+fixed_delta_seconds: 0.05
+label_radius: 80.0          # m, 이 거리 안의 차량·신호등만 정답 기록
+
+camera:                     # 전방 카메라 (RGB + 인스턴스 세그멘테이션 동일 위치)
+  width: 1280
+  height: 720
+  fov: 90
+  x: 0.5
+  z: 1.7

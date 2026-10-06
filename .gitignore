@@ -1,0 +1,45 @@
+# 주의: gitignore는 줄 끝 주석을 지원하지 않는다. 주석은 항상 별도 줄에.
+
+# ── 데이터 / 산출물 ──
+# 루트 기준 '/'로 고정한다. 'data/'만 쓰면 src/driveloop/data/ 코드까지 무시된다.
+# 수집 원본·라벨·데이터셋 (수백 MB~GB) → DVC로 버전 관리
+/data/
+# 확인용 이미지, 주행 로그 CSV (재생성 가능)
+/outputs/
+# YOLO 학습 결과
+/runs/
+# 수집·라벨링 중간 산출물
+*.partial
+
+# ── 모델 가중치 (용량 큼. 필요한 것은 DVC 또는 GitHub Release로) ──
+*.pt
+*.pth
+*.onnx
+*.engine
+*.ckpt
+
+# ── DVC 로컬 캐시 (dvc init이 .dvc/.gitignore를 만들지만 한 번 더) ──
+/.dvc/cache/
+/.dvc/tmp/
+
+# ── 비밀 정보 ──
+.env
+.env.*
+*.key
+
+# ── Python ──
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ipynb_checkpoints/
+*.log
+
+# ── 에디터 / OS ──
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

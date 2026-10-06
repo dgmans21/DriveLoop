@@ -1,0 +1,14 @@
+# CARLA 서버 접속 및 시뮬레이션 설정
+host: localhost
+port: 2000
+timeout: 20.0                # 초 (맵 로딩 시에는 내부적으로 더 길게 잡음)
+map: Town01                  # 8GB VRAM: Town01~05 권장
+fixed_delta_seconds: 0.05    # 동기 모드 1틱 = 0.05초 (20Hz)
+seed: 42
+vehicle_blueprint: vehicle.tesla.model3
+spawn_index: null            # null이면 seed 기반 무작위 스폰 지점
+
+camera:                      # 화면 표시용 3인칭 카메라
+  width: 800
+  height: 450
+  fov: 90

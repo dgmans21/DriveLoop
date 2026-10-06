@@ -1,0 +1,23 @@
+# 학습용 데이터셋 내보내기 (data/processed/<source> → data/datasets/<name>, YOLO 형식)
+name: v1
+source: v1
+classes: [vehicle, tl_red, tl_yellow, tl_green]
+
+# 에피소드 단위 분할: 같은 에피소드의 비슷한 연속 프레임이 train/val에 섞이면 성능이 부풀려진다
+# val = 날씨×시간 4조합을 하나씩, 맵·교통량은 2개씩
+val_episodes:
+  - Town01_clear_noon_high_r0
+  - Town03_clear_night_low_r0
+  - Town03_rain_noon_high_r0
+  - Town01_rain_night_low_r0
+
+use_dedup: true                                    # 2-2c에서 keep=True 프레임만
+drop_frame_flags: [blank_image, wrong_image_size]  # 이 플래그가 있는 프레임은 제외
+
+# 라벨 대신 무시 영역(회색)으로 처리할 객체
+ignore_object_flags: [tl_color_mismatch, tl_aspect_odd]
+ignore_lamp_color: [dark, saturated]               # 불빛 색을 이미지에서 확인할 수 없는 신호등
+
+ignore_fill: [114, 114, 114]                       # YOLO 레터박스 회색과 동일
+ignore_pad_px: 2
+jpeg_quality: 95

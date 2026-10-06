@@ -1,0 +1,18 @@
+# 품질 비교 파일럿: 같은 seed로 맑음/비 장면을 짧게 수집 (Epic vs Low 비교용)
+name: pilot_low
+output_root: data/raw
+seed: 0
+maps: [Town01]
+weathers:
+  clear: {cloudiness: 10, precipitation: 0, precipitation_deposits: 0, wetness: 0, fog_density: 0}
+  rain:  {cloudiness: 90, precipitation: 70, precipitation_deposits: 60, wetness: 80, fog_density: 5}
+times:
+  noon:  {sun_altitude_angle: 60}
+traffic:
+  low: 15
+frames_per_episode: 40
+capture_interval: 0.5
+warmup_seconds: 3.0
+fixed_delta_seconds: 0.05
+label_radius: 80.0
+camera: {width: 1280, height: 720, fov: 90, x: 0.5, z: 1.7}
