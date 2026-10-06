@@ -1,0 +1,36 @@
+{
+  "dataset": "v1",
+  "built_at": "2026-10-06T14:01:41",
+  "label_rules_version": 4,
+  "qc_rules": {
+    "version": 1,
+    "image": {
+      "min_mean_luma": 4.0,
+      "min_std_luma": 3.0
+    },
+    "vehicle": {
+      "max_box_area_ratio": 0.8
+    },
+    "traffic_light": {
+      "min_aspect": 1.2,
+      "max_aspect": 6.0
+    }
+  },
+  "frames": 2400,
+  "frames_qc_pass": 2393,
+  "frame_flags": {
+    "tl_aspect_odd": 6,
+    "tl_color_mismatch": 2
+  },
+  "objects": 7834,
+  "object_flags": {
+    "tl_aspect_odd": 6,
+    "tl_color_mismatch": 2
+  },
+  "lamp_color": {
+    "match": 4062,
+    "dark": 231,
+    "saturated": 3,
+    "mismatch": 2
+  }
+}

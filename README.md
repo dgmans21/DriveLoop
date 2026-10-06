@@ -59,7 +59,7 @@ DriveLoop/
 | 2-2b | 메타데이터(frames/objects Parquet) + QC 플래그 + 신호등 불빛 색 검증 | ✅ `scripts/22_build_metadata.py` |
 | 2-2c | 중복 제거 (자차 이동 + dHash + 라벨 구성, 대표 프레임 기준) | ✅ `scripts/23_dedup.py`, v1: 2,400 → 1,683장 |
 | 2-2d | YOLO 내보내기: 에피소드 단위 분할, 무시 영역(회색) 처리, manifest | ✅ `scripts/24_export_yolo.py`, v1: train 1,199 / val 484장 |
-| 2-2d+ | DVC 데이터 버전 관리 | ⏳ (git 첫 커밋 후) |
+| 2-2d+ | DVC: 원본 `dvc add` + 라벨→QC→중복 제거→내보내기 `dvc.yaml` 파이프라인 | ✅ `dvc repro`, `dvc metrics show` |
 | 2-2e | 분포 리포트 | ⏳ |
 | 2-3 | YOLO 학습, 조건별 성능, 실패 분석 → 추가 수집 | ⏳ |
 | 2-4 | 전방 차량 추종(정답값) + 내 모델로 인지 교체 | ⏳ |
@@ -83,4 +83,18 @@ python scripts\03_traffic_light_drive.py  # 1-3
 python scripts\10_collect.py --dry-run  # 2-1 수집 계획 확인
 python scripts\10_collect.py --limit 1  # 2-1 파일럿 (에피소드 1개)
 pytest                                  # 판단·제어 단위 테스트 (CARLA 불필요)
+```
+
+## 데이터 버전 관리 (DVC)
+
+원본 `data/raw/v1`은 `dvc add`로, 그 뒤 단계는 [dvc.yaml](dvc.yaml) 파이프라인으로 관리한다.
+git에는 데이터의 지문(`*.dvc`, `dvc.lock`)과 품질 리포트만 들어가고, 실제 파일은 DVC 저장소에 있다.
+
+```powershell
+conda activate driveloop
+dvc pull                 # DVC 저장소에서 데이터 받기 (기본: 로컬 D:\dvc-store)
+dvc repro                # 규칙·코드가 바뀐 단계만 다시 실행 (라벨 → QC → 중복 제거 → 내보내기)
+dvc metrics show         # QC·중복 제거 지표
+dvc metrics diff HEAD~1  # 직전 커밋 대비 지표 변화
+dvc push                 # 새 결과를 DVC 저장소에 백업
 ```

@@ -1,0 +1,5 @@
+[core]
+    remote = localstore
+    autostage = false
+['remote "localstore"']
+    url = D:\dvc-store

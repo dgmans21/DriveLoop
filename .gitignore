@@ -2,8 +2,14 @@
 
 # ── 데이터 / 산출물 ──
 # 루트 기준 '/'로 고정한다. 'data/'만 쓰면 src/driveloop/data/ 코드까지 무시된다.
-# 수집 원본·라벨·데이터셋 (수백 MB~GB) → DVC로 버전 관리
-/data/
+# 수집 원본·라벨·데이터셋 (수백 MB~GB)은 DVC로 버전 관리:
+# 실제 파일은 모두 무시하고, DVC 지문 파일(*.dvc)과 DVC가 만드는 .gitignore만 git에 남긴다
+/data/**
+!/data/**/
+!/data/**/*.dvc
+!/data/**/.gitignore
+# 작은 품질 지표 리포트는 git으로 버전 비교 (dvc metrics)
+!/data/processed/**/*_report.json
 # 확인용 이미지, 주행 로그 CSV (재생성 가능)
 /outputs/
 # YOLO 학습 결과

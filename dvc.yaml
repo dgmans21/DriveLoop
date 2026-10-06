@@ -1,0 +1,56 @@
+# 데이터 파이프라인: 원본(data/raw/v1, dvc add로 등록) → 라벨 → 메타데이터·QC → 중복 제거 → YOLO 데이터셋
+# 규칙·코드를 바꾸면 `dvc repro`가 영향받는 단계만 다시 실행하고 결과 해시를 dvc.lock에 기록한다.
+# 실행 전 conda activate driveloop (cmd의 python이 이 환경을 가리켜야 함)
+stages:
+  autolabel:
+    cmd: python scripts/20_autolabel.py --dataset v1
+    deps:
+      - data/raw/v1
+      - scripts/20_autolabel.py
+      - src/driveloop/data/autolabel.py
+      - src/driveloop/data/geometry.py
+      - configs/labeling.yaml
+    outs:
+      - data/processed/v1/labels
+
+  metadata:
+    cmd: python scripts/22_build_metadata.py --dataset v1
+    deps:
+      - data/raw/v1
+      - data/processed/v1/labels
+      - scripts/22_build_metadata.py
+      - src/driveloop/data/metadata.py
+      - configs/qc.yaml
+    outs:
+      - data/processed/v1/frames.parquet
+      - data/processed/v1/objects.parquet
+    metrics:
+      - data/processed/v1/qc_report.json:
+          cache: false
+
+  dedup:
+    cmd: python scripts/23_dedup.py --dataset v1 --samples 0
+    deps:
+      - data/processed/v1/frames.parquet
+      - scripts/23_dedup.py
+      - src/driveloop/data/dedup.py
+      - configs/dedup.yaml
+    outs:
+      - data/processed/v1/dedup.parquet
+    metrics:
+      - data/processed/v1/dedup_report.json:
+          cache: false
+
+  export:
+    cmd: python scripts/24_export_yolo.py --config configs/export/v1.yaml
+    deps:
+      - data/raw/v1
+      - data/processed/v1/labels
+      - data/processed/v1/frames.parquet
+      - data/processed/v1/objects.parquet
+      - data/processed/v1/dedup.parquet
+      - scripts/24_export_yolo.py
+      - src/driveloop/data/export.py
+      - configs/export/v1.yaml
+    outs:
+      - data/datasets/v1
