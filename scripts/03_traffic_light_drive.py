@@ -15,7 +15,7 @@ from pathlib import Path
 import carla
 
 from driveloop.config import PROJECT_ROOT, load_driving_config, load_sim_config
-from driveloop.control.lateral import pick_lookahead_point, pure_pursuit_steer
+from driveloop.control.lateral import pick_lookahead_point, pure_pursuit_steer, rear_axle
 from driveloop.control.pid import LongitudinalController
 from driveloop.perception.ground_truth import GroundTruthPerception
 from driveloop.perception.types import TLState
@@ -101,7 +101,7 @@ def main() -> None:
                 if len(points) >= 2:
                     ego_xy = (tf.location.x, tf.location.y)
                     ld = drv.lookahead_min + drv.lookahead_gain * speed
-                    target = pick_lookahead_point(points, ego_xy, ld)
+                    target = pick_lookahead_point(points, rear_axle(ego_xy, tf.rotation.yaw, drv.wheelbase), ld)
                     steer = pure_pursuit_steer(ego_xy, tf.rotation.yaw, target, drv.wheelbase, max_steer)
                 else:  # 경로 끝 (막다른 길)
                     steer, throttle, brake = 0.0, 0.0, 1.0

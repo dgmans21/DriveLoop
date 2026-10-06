@@ -1,0 +1,33 @@
+# v3 학습·검증용 추가 수집: 처음 보는 맵 2개 + 밤·작은 객체 보강
+# 근거: runs/detect/v2_base/eval/test.json (데이터셋 v2 최종 모델, Town05 test)
+#   - red recall val 0.93 vs test 0.76 → 학습 맵이 Town01·03 둘뿐이라 생기는 일반화 갭 (더 학습해도 안 줄어듦)
+#   - 임계값을 0.05까지 낮춰도 안 메워지는 부분: 먼 신호(<16px) red 0.64~0.77, 작은 차량(<24px) ~0.5,
+#     밤·비 오는 밤 차량 0.63~0.67 → 데이터로 메울 대상
+# test(Town05)는 그대로 둔다 → v2 모델과 같은 test로 '데이터만 바꾼 효과'를 비교
+name: v3
+output_root: data/raw
+seed: 0
+maps: [Town02, Town04]      # 새 맵 (Town02: 주택가·신호 많음 / Town04: 시가지+외곽, 먼 신호·차량)
+repeat_start: 0
+repeats: 1
+
+weathers:
+  clear: {cloudiness: 10, precipitation: 0, precipitation_deposits: 0, wetness: 0, fog_density: 0}
+  rain:  {cloudiness: 90, precipitation: 70, precipitation_deposits: 60, wetness: 80, fog_density: 5}
+times:
+  noon:  {sun_altitude_angle: 60}
+  night: {sun_altitude_angle: -40}
+traffic:
+  low: 15
+  high: 70                  # v2는 50. 화면 속 차량(특히 멀리 있는 작은 차량) 늘리기
+
+frames_per_episode: 150     # 일반 저장 장수 = 에피소드 길이 75초 (노란불 추가 저장은 별도)
+capture_interval: 0.5
+warmup_seconds: 3.0
+fixed_delta_seconds: 0.05
+label_radius: 80.0
+camera: {width: 1280, height: 720, fov: 90, x: 0.5, z: 1.7}   # 학습·주행 카메라와 동일하게 유지
+
+# 노란불 보강 유지 (test yellow recall 0.73)
+traffic_light_timing: {green: 6, yellow: 6, red: 2}
+yellow_capture_interval: 0.25

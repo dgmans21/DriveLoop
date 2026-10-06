@@ -1,0 +1,34 @@
+# 데이터셋 v3 = 원본 v1 + v2 + v3 (Town02·04 추가, 밤·작은 객체 보강)
+# test는 v2와 같은 Town05 에피소드 → v2 모델과 같은 시험지로 비교
+name: v3
+sources: [v1, v2, v3]
+classes: [vehicle, tl_red, tl_yellow, tl_green]
+
+test_maps: [Town05]
+
+# 에피소드 단위 분할. v1·v2 검증 에피소드는 그대로 두고, 원본 v3에서 맵마다 2개씩 추가
+# (날씨×시간 4조합을 하나씩). 수집 후 노란불이 0~2장인 에피소드면 같은 조건의 다른 교통량으로 교체할 것
+val_episodes:
+  # 원본 v1
+  - Town01_clear_noon_high_r0
+  - Town03_clear_night_low_r0
+  - Town03_rain_noon_high_r0
+  - Town01_rain_night_low_r0
+  # 원본 v2
+  - Town03_clear_noon_low_r1
+  - Town01_clear_night_high_r1
+  - Town01_rain_noon_low_r1
+  - Town03_rain_night_high_r1
+  # 원본 v3
+  - Town02_clear_noon_high_r0
+  - Town02_rain_night_low_r0
+  - Town04_clear_night_low_r0
+  - Town04_rain_noon_high_r0
+
+use_dedup: true
+drop_frame_flags: [blank_image, wrong_image_size]
+ignore_object_flags: [tl_color_mismatch, tl_aspect_odd]
+ignore_lamp_color: [dark, saturated]
+ignore_fill: [114, 114, 114]
+ignore_pad_px: 2
+jpeg_quality: 95

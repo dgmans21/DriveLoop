@@ -41,7 +41,18 @@ class GroundTruthPerception:
         return len({tl.id for items in self._stops.values() for tl, _ in items})
 
     def perceive(self, image=None) -> PerceptionOutput:
-        """정지선까지 거리는 직선이 아니라 경로를 따라 잰다 (코너 너머 신호를 가깝게 오인하지 않도록)."""
+        nearest = self.nearest_light()
+        if nearest is None:
+            return PerceptionOutput()
+        tl, dist = nearest
+        return PerceptionOutput(_TL_STATE.get(tl.get_state(), TLState.UNKNOWN), dist)
+
+    def nearest_light(self) -> tuple[carla.TrafficLight, float] | None:
+        """지도 정보만으로 '내 차선을 통제하는 가장 가까운 신호등'과 정지선까지 거리 (상태는 읽지 않음).
+
+        모델 인지(ModelPerception)도 이 부분을 재사용한다 — 위치는 지도, 색은 모델.
+        정지선까지 거리는 직선이 아니라 경로를 따라 잰다 (코너 너머 신호를 가깝게 오인하지 않도록).
+        """
         tf = self._ego.get_transform()
         fwd = tf.get_forward_vector()
         wps = self._route.waypoints
@@ -69,7 +80,4 @@ class GroundTruthPerception:
                 if best is None or dist < best[1]:
                     best = (tl, dist)
 
-        if best is None:
-            return PerceptionOutput()
-        tl, dist = best
-        return PerceptionOutput(_TL_STATE.get(tl.get_state(), TLState.UNKNOWN), dist)
+        return best

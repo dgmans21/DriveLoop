@@ -1,0 +1,19 @@
+# 본 학습 (기준 모델): 데이터셋 v2, YOLO11n, 1280px
+# 회차로 나눠 실행: --stop-after 10 으로 10 epoch마다 멈추고 --resume 으로 이어감
+name: v2_base
+dataset: v2
+model: yolo11n.pt          # COCO 사전학습
+epochs: 60                 # 상한. patience 동안 개선이 없으면 조기 종료
+imgsz: 1280                # 신호등 26%가 16px 미만
+batch: 8                   # 1280px에서 VRAM 약 6GB (시험 학습 실측)
+# 8로 올렸다가 실패: Windows는 작업자 프로세스마다 torch(CUDA DLL)를 올려 가상 메모리(커밋)를 크게 잡는다.
+# 커밋 여유 약 7GB를 넘겨 cudaMalloc이 실패 → VRAM이 6GB 남았는데도 'CUDA out of memory'로 보고됨 (2026-10-06)
+workers: 4
+seed: 0
+device: 0
+
+extra:
+  patience: 15
+  plots: true
+  # cache 미사용: RAM 여유 6.8GB < 1280px 학습 이미지 약 6.5GB + 검증,
+  #   disk 캐시는 DVC 관리 폴더(data/datasets)에 파일을 추가해 dvc status가 깨짐

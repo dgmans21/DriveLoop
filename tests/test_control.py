@@ -3,7 +3,7 @@ import math
 import pytest
 
 from driveloop.config import DrivingConfig
-from driveloop.control.lateral import pick_lookahead_point, pure_pursuit_steer
+from driveloop.control.lateral import pick_lookahead_point, pure_pursuit_steer, rear_axle
 from driveloop.control.pid import PID, LongitudinalController
 from driveloop.perception.types import PerceptionOutput, TLState
 from driveloop.planning.behavior import BehaviorState, TrafficLightBehavior
@@ -46,6 +46,11 @@ def test_pure_pursuit_steer_direction(yaw, target, sign):
         assert steer == pytest.approx(0.0, abs=1e-9)
     else:
         assert math.copysign(1, steer) == sign
+
+
+def test_rear_axle_is_half_wheelbase_behind():
+    assert rear_axle((10.0, 0.0), 0.0, 2.0) == pytest.approx((9.0, 0.0))
+    assert rear_axle((0.0, 0.0), 90.0, 2.0) == pytest.approx((0.0, -1.0))
 
 
 def test_pick_lookahead_point():

@@ -57,8 +57,8 @@ class DrivingConfig:
     curve_lat_accel: float = 2.5
     route_spacing: float = 2.0
     route_horizon: float = 60.0
-    lookahead_min: float = 4.0
-    lookahead_gain: float = 0.5
+    lookahead_min: float = 3.0
+    lookahead_gain: float = 0.3
     wheelbase: float = 2.9
 
 

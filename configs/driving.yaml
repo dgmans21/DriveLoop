@@ -18,6 +18,6 @@ curve_lat_accel: 2.5     # m/s², 허용 횡가속도 (반경 10m 코너 ≈ 18k
 # 경로/횡방향(pure pursuit)
 route_spacing: 2.0       # m, 경로 waypoint 간격
 route_horizon: 60.0      # m, 유지할 전방 경로 길이
-lookahead_min: 4.0       # m, 최소 전방 주시 거리
-lookahead_gain: 0.5      # s, 속도(m/s)당 추가 주시 거리
+lookahead_min: 3.0       # m, 최소 전방 주시 거리 (후륜축에서 잼). 길수록 코너 안쪽을 깎는다
+lookahead_gain: 0.3      # s, 속도(m/s)당 추가 주시 거리. 4.0+0.5 → 반경 7m 코너에서 안쪽 1.0m 깎여 연석 접촉
 wheelbase: 2.9           # m
