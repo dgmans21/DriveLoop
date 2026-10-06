@@ -12,17 +12,22 @@ import itertools
 import queue
 import random
 import time
+from contextlib import nullcontext
+
+import numpy as np
 
 import carla
 
 from driveloop.config import CONFIG_DIR, load_sim_config
+from driveloop.data.capture_policy import CaptureScheduler, yellow_in_view
 from driveloop.data.collection_config import (CollectionConfig, EpisodeSpec, expand_matrix,
                                               load_collection_config, weather_params)
-from driveloop.data.snapshot import camera_intrinsics, frame_snapshot, traffic_light_catalog
+from driveloop.data.snapshot import (camera_intrinsics, frame_snapshot, traffic_light_catalog,
+                                     transform_to_dict)
 from driveloop.data.writer import EpisodeWriter, is_complete
 from driveloop.sim.client import ActorPool, connect, spawn_ego, synchronous_mode
 from driveloop.sim.sensors import get_frame, image_to_rgb
-from driveloop.sim.traffic import spawn_npc_vehicles, traffic_manager
+from driveloop.sim.traffic import spawn_npc_vehicles, traffic_light_timing, traffic_manager
 from driveloop.sim.weather import apply_weather, weather_to_dict
 
 TM_PORT = 8000
@@ -45,7 +50,10 @@ def run_episode(client, world, tm, cfg: CollectionConfig, spec: EpisodeSpec, sim
     params = weather_params(cfg, spec)
     apply_weather(world, params)
 
-    with ActorPool() as pool:
+    timing = cfg.traffic_light_timing
+    timing_ctx = (traffic_light_timing(world, timing.green, timing.yellow, timing.red)
+                  if timing else nullcontext())
+    with timing_ctx, ActorPool() as pool:
         ego, spawn_idx = spawn_ego(world, sim_cfg, rng)
         pool.add(ego)
         npc_ids = spawn_npc_vehicles(client, world, tm, cfg.traffic[spec.traffic], rng)
@@ -62,24 +70,38 @@ def run_episode(client, world, tm, cfg: CollectionConfig, spec: EpisodeSpec, sim
         seg_cam.listen(seg_q.put)
 
         traffic_lights = list(world.get_actors().filter("traffic.traffic_light"))
+        catalog = traffic_light_catalog(world)
+        K = np.array(camera_intrinsics(cfg.camera.width, cfg.camera.height, cfg.camera.fov))
+        scheduler = CaptureScheduler(cfg.capture_every_ticks, cfg.yellow_capture_ticks)
         episode_dir = cfg.output_dir / spec.episode_id
         start_wall = time.time()
+        reasons = {"regular": 0, "yellow": 0}
 
         with EpisodeWriter(episode_dir) as writer:
-            tick = 0
             t0 = None
-            while writer.count < cfg.frames_per_episode:
+            for tick in range(cfg.warmup_ticks + cfg.episode_ticks):
                 frame = world.tick()
                 rgb_img = get_frame(rgb_q, frame)   # 매 tick 꺼내야 큐가 쌓이지 않는다
                 seg_img = get_frame(seg_q, frame)
-                tick += 1
-                if tick <= cfg.warmup_ticks:
+                if tick < cfg.warmup_ticks:
                     continue
-                if (tick - cfg.warmup_ticks - 1) % cfg.capture_every_ticks:
+                k = tick - cfg.warmup_ticks
+                yellow = False
+                if scheduler.wants_fast_check(k):   # 비용이 드는 판정은 저장 가능한 시점에만
+                    ego_loc = ego.get_location()
+                    states = {str(tl.id): "yellow" for tl in traffic_lights
+                              if tl.get_state() == carla.TrafficLightState.Yellow
+                              and tl.get_location().distance(ego_loc) <= cfg.label_radius}
+                    yellow = bool(states) and yellow_in_view(
+                        states, catalog, transform_to_dict(rgb_cam.get_transform()), K,
+                        cfg.camera.width, cfg.camera.height, cfg.yellow_max_facing_angle, cfg.label_radius)
+                reason = scheduler.decide(k, yellow)
+                if reason is None:
                     continue
+                reasons[reason] += 1
                 sim_t = world.get_snapshot().timestamp.elapsed_seconds
                 t0 = sim_t if t0 is None else t0
-                meta = {"frame": frame, "t": round(sim_t - t0, 3),
+                meta = {"frame": frame, "t": round(sim_t - t0, 3), "capture_reason": reason,
                         **frame_snapshot(world, ego, rgb_cam, traffic_lights, cfg.label_radius)}
                 writer.add(image_to_rgb(rgb_img), image_to_rgb(seg_img), meta)
 
@@ -98,13 +120,17 @@ def run_episode(client, world, tm, cfg: CollectionConfig, spec: EpisodeSpec, sim
                            "K": camera_intrinsics(cfg.camera.width, cfg.camera.height, cfg.camera.fov)},
                 "fixed_delta_seconds": cfg.fixed_delta_seconds,
                 "capture_interval": cfg.capture_interval,
+                "yellow_capture_interval": cfg.yellow_capture_interval,
+                "traffic_light_timing": None if timing is None else
+                    {"green": timing.green, "yellow": timing.yellow, "red": timing.red},
+                "capture_counts": reasons,
                 "label_radius": cfg.label_radius,
-                "traffic_lights": traffic_light_catalog(world),
+                "traffic_lights": catalog,
                 "carla_version": client.get_server_version(),
                 "collected_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
                 "wall_seconds": round(wall, 1),
             })
-    return {"frames": cfg.frames_per_episode, "wall": wall, "npc": len(npc_ids)}
+    return {"frames": writer.count, "wall": wall, "npc": len(npc_ids), "yellow": reasons["yellow"]}
 
 
 def main() -> None:
@@ -145,7 +171,7 @@ def main() -> None:
                 done += 1
                 print(f"[{done}/{len(todo)}] {spec.episode_id} ...", flush=True)
                 stats = run_episode(client, world, tm, cfg, spec, sim_cfg)
-                print(f"        {stats['frames']}장 저장, NPC {stats['npc']}대, {stats['wall']:.0f}초 "
+                print(f"        {stats['frames']}장 저장 (노란불 추가 {stats['yellow']}), NPC {stats['npc']}대, {stats['wall']:.0f}초 "
                       f"({stats['frames'] / stats['wall']:.1f} 장/초)", flush=True)
     print("[done]")
 

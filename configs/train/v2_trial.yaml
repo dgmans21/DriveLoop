@@ -1,0 +1,14 @@
+# 시험 학습: 파이프라인·VRAM·속도 확인용 1 epoch
+name: v2_trial
+dataset: v2                # data/datasets/<dataset>/data.yaml
+model: yolo11n.pt          # COCO 사전학습 (car·traffic light를 이미 앎) — 가장 작은 모델부터
+epochs: 1
+imgsz: 1280                # 신호등 26%가 16px 미만 → 640이면 8px 이하로 줄어 검출이 어려움
+batch: 8
+workers: 4
+seed: 0
+device: 0
+
+# ultralytics train()에 그대로 넘길 추가 인자
+extra:
+  plots: true

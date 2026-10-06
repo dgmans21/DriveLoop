@@ -20,6 +20,14 @@ class CaptureCamera:
 
 
 @dataclass
+class TrafficLightTiming:
+    """신호등 단계별 시간(초). 노란불을 늘려 희소한 노란불 장면을 더 모으는 데 쓴다 (겉모습은 동일)."""
+    green: float = 10.0
+    yellow: float = 3.0
+    red: float = 2.0
+
+
+@dataclass
 class CollectionConfig:
     name: str
     maps: list[str]
@@ -29,12 +37,16 @@ class CollectionConfig:
     output_root: str = "data/raw"
     seed: int = 0
     repeats: int = 1
+    repeat_start: int = 0                  # 새 seed로 추가 수집할 때 (v1이 r0이면 v2는 1부터)
     frames_per_episode: int = 150
     capture_interval: float = 0.5
     warmup_seconds: float = 3.0
     fixed_delta_seconds: float = 0.05
     label_radius: float = 80.0
     camera: CaptureCamera = field(default_factory=CaptureCamera)
+    traffic_light_timing: TrafficLightTiming | None = None   # None이면 맵 기본값 유지
+    yellow_capture_interval: float | None = None             # 노란불이 보이면 이 간격으로 저장 (None=끔)
+    yellow_max_facing_angle: float = 70.0                    # '보인다' 판정 = 라벨러와 같은 기준
 
     @property
     def output_dir(self) -> Path:
@@ -44,6 +56,17 @@ class CollectionConfig:
     @property
     def capture_every_ticks(self) -> int:
         return max(1, round(self.capture_interval / self.fixed_delta_seconds))
+
+    @property
+    def yellow_capture_ticks(self) -> int | None:
+        if self.yellow_capture_interval is None:
+            return None
+        return max(1, round(self.yellow_capture_interval / self.fixed_delta_seconds))
+
+    @property
+    def episode_ticks(self) -> int:
+        """에피소드 길이(워밍업 제외). 장수가 아니라 시간 기준 → 노란불 추가 저장이 일반 장면을 줄이지 않는다."""
+        return self.frames_per_episode * self.capture_every_ticks
 
     @property
     def warmup_ticks(self) -> int:
@@ -77,7 +100,7 @@ def expand_matrix(cfg: CollectionConfig) -> list[EpisodeSpec]:
     """모든 조건 조합. 맵 로딩 횟수를 줄이도록 맵 순서대로 묶는다."""
     specs = []
     for m, w, t, tr, r in itertools.product(cfg.maps, cfg.weathers, cfg.times, cfg.traffic,
-                                            range(cfg.repeats)):
+                                            range(cfg.repeat_start, cfg.repeat_start + cfg.repeats)):
         spec = EpisodeSpec(m, w, t, tr, r, seed=0)
         specs.append(EpisodeSpec(m, w, t, tr, r, episode_seed(cfg.seed, spec.episode_id)))
     return specs

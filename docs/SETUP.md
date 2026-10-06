@@ -43,6 +43,21 @@ pip install -e ".[dev]"    # carla==0.9.16, pygame, numpy, pyyaml, pytest
 pytest                     # 21개 통과하면 판단·제어 로직 정상
 ```
 
+### 학습용 패키지 (2-3부터)
+
+`pip install ultralytics`만 하면 Windows에서는 **CPU 전용 PyTorch**가 설치된다. CUDA 빌드를 먼저 설치한다.
+(GPU 드라이버만 있으면 되고 CUDA Toolkit/nvcc는 필요 없다 — PyTorch가 CUDA 런타임을 포함)
+
+```powershell
+conda activate driveloop
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+pip install -e ".[train]"
+python -c "import torch; print(torch.cuda.is_available())"   # True여야 함
+```
+
+base 등 다른 conda 환경의 torch/ultralytics는 공유되지 않는다. CARLA(3.10~3.12)와 같은 환경에 있어야
+2-4에서 주행 루프 안에서 모델을 돌릴 수 있으므로 `driveloop` 환경에 설치한다.
+
 ## 4. 단계별 실행 확인
 
 CARLA 서버를 띄운 상태에서 실행한다.

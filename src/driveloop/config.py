@@ -71,8 +71,11 @@ def _build(cls: type[T], data: dict[str, Any]) -> T:
     kwargs = {}
     for name, value in data.items():
         hint = hints[name]
-        if is_dataclass(hint) and isinstance(value, dict):
-            value = _build(hint, value)
+        # Optional[데이터클래스] (X | None) 도 dict면 데이터클래스로 만든다
+        candidates = [hint, *typing.get_args(hint)]
+        target = next((c for c in candidates if is_dataclass(c)), None)
+        if target is not None and isinstance(value, dict):
+            value = _build(target, value)
         kwargs[name] = value
     return cls(**kwargs)
 

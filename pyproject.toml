@@ -19,6 +19,8 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "dvc>=3"]
+# 학습: torch는 CUDA 빌드를 먼저 설치 (docs/SETUP.md 참고)
+train = ["ultralytics>=8.3"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

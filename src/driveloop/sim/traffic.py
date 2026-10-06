@@ -22,6 +22,26 @@ def traffic_manager(client: carla.Client, port: int, seed: int) -> Iterator[carl
         tm.set_synchronous_mode(False)
 
 
+@contextmanager
+def traffic_light_timing(world: carla.World, green: float, yellow: float, red: float) -> Iterator[None]:
+    """에피소드 동안만 모든 신호등 시간을 바꾸고, 끝나면 원래 값으로 되돌린다 (다음 수집에 남지 않게)."""
+    lights = list(world.get_actors().filter("traffic.traffic_light"))
+    original = [(tl, tl.get_green_time(), tl.get_yellow_time(), tl.get_red_time()) for tl in lights]
+    for tl in lights:
+        tl.set_green_time(green)
+        tl.set_yellow_time(yellow)
+        tl.set_red_time(red)
+    world.reset_all_traffic_lights()
+    try:
+        yield
+    finally:
+        for tl, g, y, r in original:
+            tl.set_green_time(g)
+            tl.set_yellow_time(y)
+            tl.set_red_time(r)
+        world.reset_all_traffic_lights()
+
+
 def spawn_npc_vehicles(client: carla.Client, world: carla.World, tm: carla.TrafficManager,
                        count: int, rng: random.Random) -> list[int]:
     lib = world.get_blueprint_library()

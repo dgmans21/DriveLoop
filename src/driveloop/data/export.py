@@ -11,9 +11,10 @@ from driveloop.config import load_config
 @dataclass
 class ExportConfig:
     name: str
-    source: str
+    sources: list[str]                      # 합칠 원본 버전들 (data/processed/<source>)
     classes: list[str]
     val_episodes: list[str]
+    test_maps: list[str] = field(default_factory=list)   # 이 맵은 전부 test (학습·검증에 안 씀)
     use_dedup: bool = True
     drop_frame_flags: list[str] = field(default_factory=lambda: ["blank_image", "wrong_image_size"])
     ignore_object_flags: list[str] = field(default_factory=lambda: ["tl_color_mismatch", "tl_aspect_odd"])

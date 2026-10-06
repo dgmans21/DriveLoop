@@ -60,8 +60,11 @@ DriveLoop/
 | 2-2c | 중복 제거 (자차 이동 + dHash + 라벨 구성, 대표 프레임 기준) | ✅ `scripts/23_dedup.py`, v1: 2,400 → 1,683장 |
 | 2-2d | YOLO 내보내기: 에피소드 단위 분할, 무시 영역(회색) 처리, manifest | ✅ `scripts/24_export_yolo.py`, v1: train 1,199 / val 484장 |
 | 2-2d+ | DVC: 원본 `dvc add` + 라벨→QC→중복 제거→내보내기 `dvc.yaml` 파이프라인 | ✅ `dvc repro`, `dvc metrics show` |
-| 2-2e | 분포 리포트 | ⏳ |
-| 2-3 | YOLO 학습, 조건별 성능, 실패 분석 → 추가 수집 | ⏳ |
+| 2-2e | 분포 리포트 (클래스·조건·신호등 크기·무시 사유, 목표 대비 부족 목록 자동 산출) | ✅ `scripts/25_distribution_report.py` → `data/reports/v1/distribution.html` |
+| v2 | 리포트의 부족 목록 기반 추가 수집 (노란불 시간 6초 + 조건부 저장, Town05 평가 전용, 새 seed) | ✅ 원본 24 에피소드 / 4,154장 |
+| 데이터셋 v2 | 원본 v1+v2 통합, train/val/test(Town05) | ✅ 3,987장, 부족 목록 10 → 3건 (노란불 train 285·val 78이 아직 목표 미달) |
+| 시연 | pygame 화면 녹화(MP4) → 결과 웹 페이지(GitHub Pages) → (선택) 장면 검색 웹 앱 | 📝 2-4·3단계에서 |
+| 2-3 | YOLO 학습, 조건별 성능, 실패 분석 → 추가 수집 | 🔧 `scripts/30_train.py`, 1 epoch 시험 학습 완료 (YOLO11n·1280px, VRAM 6.0GB, 약 2분/epoch) |
 | 2-4 | 전방 차량 추종(정답값) + 내 모델로 인지 교체 | ⏳ |
 | 2-4+ | 검토: 날씨 대응 판단 (비 → 순항 속도↓, 정지 감속도 기준↓, 앞차 간격↑). 이미지 날씨 분류기는 수집 태그를 라벨로 사용 | 📝 |
 | 3+ | 검토: 비 시나리오에서 타이어 마찰을 낮춰 평가 (CARLA 날씨는 시각 효과만 있고 마찰은 바뀌지 않음) | 📝 |

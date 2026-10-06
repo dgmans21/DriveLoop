@@ -1,0 +1,156 @@
+{
+  "dataset": "v1",
+  "splits": [
+    "train",
+    "val"
+  ],
+  "images": {
+    "train": 1199,
+    "val": 484
+  },
+  "objects": {
+    "vehicle": {
+      "train": 1944,
+      "val": 561
+    },
+    "tl_red": {
+      "train": 657,
+      "val": 329
+    },
+    "tl_green": {
+      "train": 375,
+      "val": 174
+    },
+    "tl_yellow": {
+      "train": 93,
+      "val": 28
+    }
+  },
+  "tl_small_ratio": 0.265,
+  "tl_size_hist": {
+    "tl_red": {
+      "<8": 2,
+      "8–12": 76,
+      "12–16": 197,
+      "16–24": 285,
+      "24–40": 247,
+      "40+": 179
+    },
+    "tl_green": {
+      "<8": 8,
+      "8–12": 48,
+      "12–16": 94,
+      "16–24": 157,
+      "24–40": 117,
+      "40+": 125
+    },
+    "tl_yellow": {
+      "<8": 1,
+      "8–12": 0,
+      "12–16": 13,
+      "16–24": 40,
+      "24–40": 44,
+      "40+": 23
+    }
+  },
+  "ignored": {
+    "vehicle:too_few_px": 1197,
+    "traffic_light:occluded": 136,
+    "tl_red:lamp_dark": 136,
+    "vehicle:too_small": 128,
+    "tl_green:lamp_dark": 50,
+    "tl_yellow:lamp_dark": 14,
+    "traffic_light:too_small": 10,
+    "tl_red:lamp_saturated": 3,
+    "tl_green:qc_flag": 3,
+    "tl_red:qc_flag": 3,
+    "tl_yellow:qc_flag": 1
+  },
+  "num_gaps": 10,
+  "gaps": [
+    {
+      "kind": "class_total",
+      "cls": "tl_green",
+      "split": "train",
+      "have": 375,
+      "target": 500,
+      "text": "초록불 train 375개 < 목표 500"
+    },
+    {
+      "kind": "class_total",
+      "cls": "tl_yellow",
+      "split": "train",
+      "have": 93,
+      "target": 500,
+      "text": "노란불 train 93개 < 목표 500"
+    },
+    {
+      "kind": "class_total",
+      "cls": "tl_yellow",
+      "split": "val",
+      "have": 28,
+      "target": 100,
+      "text": "노란불 val 28개 < 목표 100"
+    },
+    {
+      "kind": "cell",
+      "cond": "clear·night",
+      "cls": "tl_yellow",
+      "split": "train",
+      "have": 28,
+      "target": 30,
+      "text": "clear·night · 노란불 train 28개 < 30"
+    },
+    {
+      "kind": "cell",
+      "cond": "clear·noon",
+      "cls": "tl_yellow",
+      "split": "train",
+      "have": 29,
+      "target": 30,
+      "text": "clear·noon · 노란불 train 29개 < 30"
+    },
+    {
+      "kind": "cell",
+      "cond": "clear·noon",
+      "cls": "tl_yellow",
+      "split": "val",
+      "have": 0,
+      "target": 10,
+      "text": "clear·noon · 노란불 val 0개 < 10"
+    },
+    {
+      "kind": "cell",
+      "cond": "rain·night",
+      "cls": "tl_yellow",
+      "split": "train",
+      "have": 18,
+      "target": 30,
+      "text": "rain·night · 노란불 train 18개 < 30"
+    },
+    {
+      "kind": "cell",
+      "cond": "rain·night",
+      "cls": "tl_yellow",
+      "split": "val",
+      "have": 0,
+      "target": 10,
+      "text": "rain·night · 노란불 val 0개 < 10"
+    },
+    {
+      "kind": "cell",
+      "cond": "rain·noon",
+      "cls": "tl_yellow",
+      "split": "train",
+      "have": 18,
+      "target": 30,
+      "text": "rain·noon · 노란불 train 18개 < 30"
+    },
+    {
+      "kind": "heldout_map",
+      "have": 0,
+      "target": 1,
+      "text": "평가 전용 맵 0개 < 1 (val 맵이 모두 학습에도 쓰임)"
+    }
+  ]
+}

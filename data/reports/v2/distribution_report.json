@@ -1,0 +1,104 @@
+{
+  "dataset": "v2",
+  "splits": [
+    "train",
+    "val",
+    "test"
+  ],
+  "images": {
+    "train": 2350,
+    "val": 822,
+    "test": 815
+  },
+  "objects": {
+    "vehicle": {
+      "train": 3338,
+      "val": 764,
+      "test": 1068
+    },
+    "tl_red": {
+      "train": 1475,
+      "val": 793,
+      "test": 2920
+    },
+    "tl_green": {
+      "train": 633,
+      "val": 352,
+      "test": 649
+    },
+    "tl_yellow": {
+      "train": 285,
+      "val": 78,
+      "test": 509
+    }
+  },
+  "tl_small_ratio": 0.257,
+  "tl_size_hist": {
+    "tl_red": {
+      "<8": 58,
+      "8–12": 504,
+      "12–16": 1004,
+      "16–24": 1777,
+      "24–40": 1113,
+      "40+": 732
+    },
+    "tl_green": {
+      "<8": 16,
+      "8–12": 74,
+      "12–16": 189,
+      "16–24": 597,
+      "24–40": 416,
+      "40+": 342
+    },
+    "tl_yellow": {
+      "<8": 1,
+      "8–12": 9,
+      "12–16": 119,
+      "16–24": 271,
+      "24–40": 295,
+      "40+": 177
+    }
+  },
+  "ignored": {
+    "vehicle:too_few_px": 2436,
+    "tl_red:lamp_dark": 444,
+    "traffic_light:occluded": 309,
+    "vehicle:too_small": 272,
+    "tl_yellow:lamp_dark": 83,
+    "tl_green:lamp_dark": 72,
+    "traffic_light:too_small": 66,
+    "tl_red:qc_flag": 18,
+    "tl_green:qc_flag": 8,
+    "tl_red:lamp_saturated": 7,
+    "tl_yellow:qc_flag": 6,
+    "traffic_light:too_far": 1
+  },
+  "num_gaps": 3,
+  "gaps": [
+    {
+      "kind": "class_total",
+      "cls": "tl_yellow",
+      "split": "train",
+      "have": 285,
+      "target": 500,
+      "text": "노란불 train 285개 < 목표 500"
+    },
+    {
+      "kind": "class_total",
+      "cls": "tl_yellow",
+      "split": "val",
+      "have": 78,
+      "target": 100,
+      "text": "노란불 val 78개 < 목표 100"
+    },
+    {
+      "kind": "cell",
+      "cond": "clear·noon",
+      "cls": "tl_yellow",
+      "split": "val",
+      "have": 4,
+      "target": 10,
+      "text": "clear·noon · 노란불 val 4개 < 10"
+    }
+  ]
+}

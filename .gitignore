@@ -9,13 +9,23 @@
 !/data/**/*.dvc
 !/data/**/.gitignore
 # 작은 품질 지표 리포트는 git으로 버전 비교 (dvc metrics)
-!/data/processed/**/*_report.json
+!/data/**/*_report.json
 # 확인용 이미지, 주행 로그 CSV (재생성 가능)
 /outputs/
 # YOLO 학습 결과
 /runs/
 # 수집·라벨링 중간 산출물
 *.partial
+
+# ── 개인 학습 노트 ──
+/notes/
+
+# ── 학습 도구 산출물 (YOLO 라벨 캐시, 실험 기록 도구) ──
+*.cache
+/wandb/
+/mlruns/
+# ultralytics가 상대 경로 데이터셋을 받을 때 만드는 기본 폴더
+/datasets/
 
 # ── 모델 가중치 (용량 큼. 필요한 것은 DVC 또는 GitHub Release로) ──
 *.pt

@@ -1,0 +1,31 @@
+# v2 학습·검증용 추가 수집: v1과 같은 조건, 새 seed(r1) + 노란불 보강
+# 근거: data/reports/v1/distribution.html 의 부족 목록
+name: v2
+output_root: data/raw
+seed: 0
+maps: [Town01, Town03]
+repeat_start: 1             # v1이 r0 → 새 seed
+repeats: 1
+
+weathers:
+  clear: {cloudiness: 10, precipitation: 0, precipitation_deposits: 0, wetness: 0, fog_density: 0}
+  rain:  {cloudiness: 90, precipitation: 70, precipitation_deposits: 60, wetness: 80, fog_density: 5}
+times:
+  noon:  {sun_altitude_angle: 60}
+  night: {sun_altitude_angle: -40}
+traffic:
+  low: 15
+  high: 50
+
+frames_per_episode: 150     # 일반 저장 장수 = 에피소드 길이 75초 (노란불 추가 저장은 별도)
+capture_interval: 0.5
+warmup_seconds: 3.0
+fixed_delta_seconds: 0.05
+label_radius: 80.0
+camera: {width: 1280, height: 720, fov: 90, x: 0.5, z: 1.7}
+
+# 노란불 보강 (v1 리포트: 노란불 train 93 / val 28, 목표 500 / 100)
+# 신호 시간: 기본(초록 10·노랑 3·빨강 2) → 노란불 6초. 겉모습은 같아서 인지 데이터로는 문제없음
+traffic_light_timing: {green: 6, yellow: 6, red: 2}
+# 화면에 노란불이 보이면 0.25초 간격 저장 (0.1초면 한 번에 최대 60장의 거의 같은 사진)
+yellow_capture_interval: 0.25

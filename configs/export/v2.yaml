@@ -1,0 +1,30 @@
+# 데이터셋 v2 = 원본 v1 + 원본 v2 (data/reports/v1 부족 목록 보강)
+name: v2
+sources: [v1, v2]
+classes: [vehicle, tl_red, tl_yellow, tl_green]
+
+# 평가 전용 맵: 이 맵의 에피소드는 전부 test (학습·검증에 쓰지 않음 → '처음 보는 동네' 성능)
+test_maps: [Town05]
+
+# 에피소드 단위 분할. 원본마다 날씨×시간 4조합을 하나씩, 맵·교통량은 2개씩
+# 원본 v2 쪽은 같은 기준을 만족하는 후보 중 노란불이 0~2장인 에피소드는 피했다
+# (검증에 노란불이 없으면 평가 불가 — 선택이 들어간 분할임을 기록)
+val_episodes:
+  # 원본 v1 (데이터셋 v1과 동일)
+  - Town01_clear_noon_high_r0
+  - Town03_clear_night_low_r0
+  - Town03_rain_noon_high_r0
+  - Town01_rain_night_low_r0
+  # 원본 v2
+  - Town03_clear_noon_low_r1
+  - Town01_clear_night_high_r1
+  - Town01_rain_noon_low_r1
+  - Town03_rain_night_high_r1
+
+use_dedup: true
+drop_frame_flags: [blank_image, wrong_image_size]
+ignore_object_flags: [tl_color_mismatch, tl_aspect_odd]
+ignore_lamp_color: [dark, saturated]
+ignore_fill: [114, 114, 114]
+ignore_pad_px: 2
+jpeg_quality: 95

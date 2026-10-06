@@ -80,3 +80,28 @@ def test_seg_png_is_lossless(tmp_path):
         w.add(np.zeros_like(seg), seg, {})
         w.finalize({})
     assert np.array_equal(np.asarray(Image.open(tmp_path / "ep3" / "seg" / "000000.png")), seg)
+
+
+def test_optional_timing_block_and_repeat_start(tmp_path):
+    import yaml
+    from driveloop.data.collection_config import TrafficLightTiming
+    p = tmp_path / "c.yaml"
+    p.write_text(yaml.safe_dump({
+        "name": "t", "maps": ["Town01"], "weathers": {"clear": {}}, "times": {"noon": {}},
+        "traffic": {"low": 5}, "repeat_start": 1, "repeats": 2,
+        "traffic_light_timing": {"green": 6, "yellow": 6, "red": 2}, "yellow_capture_interval": 0.1}))
+    cfg = load_collection_config(p)
+    assert isinstance(cfg.traffic_light_timing, TrafficLightTiming) and cfg.traffic_light_timing.yellow == 6
+    assert cfg.yellow_capture_ticks == 2
+    assert [s.repeat for s in expand_matrix(cfg)] == [1, 2]
+
+
+def test_new_repeat_gets_new_seed_old_ids_unchanged():
+    v1 = {s.episode_id: s.seed for s in expand_matrix(make_cfg())}
+    v2 = expand_matrix(make_cfg(repeat_start=1))
+    assert all(s.episode_id.endswith("_r1") and s.episode_id not in v1 for s in v2)
+
+
+def test_episode_length_is_time_based():
+    cfg = make_cfg()
+    assert cfg.episode_ticks == cfg.frames_per_episode * cfg.capture_every_ticks

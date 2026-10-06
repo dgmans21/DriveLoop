@@ -1,6 +1,6 @@
 # 학습용 데이터셋 내보내기 (data/processed/<source> → data/datasets/<name>, YOLO 형식)
 name: v1
-source: v1
+sources: [v1]
 classes: [vehicle, tl_red, tl_yellow, tl_green]
 
 # 에피소드 단위 분할: 같은 에피소드의 비슷한 연속 프레임이 train/val에 섞이면 성능이 부풀려진다

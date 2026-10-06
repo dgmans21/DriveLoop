@@ -139,3 +139,380 @@ stages:
       md5: 6b94cfb11cdd24e968523727e542725c.dir
       size: 308761726
       nfiles: 3369
+  report:
+    cmd: python scripts/25_distribution_report.py --config configs/report.yaml
+    deps:
+    - path: configs/report.yaml
+      hash: md5
+      md5: fa25db601bd46c3ba6692019d2e3f4cf
+      size: 679
+    - path: data/datasets/v1
+      hash: md5
+      md5: 6b94cfb11cdd24e968523727e542725c.dir
+      size: 308761726
+      nfiles: 3369
+    - path: scripts/25_distribution_report.py
+      hash: md5
+      md5: d5acc2a3e52a00ccb9a43b627666d82b
+      size: 13706
+    outs:
+    - path: data/reports/v1/distribution.html
+      hash: md5
+      md5: 820c5c013b82d8c8d0e328708a650e7e
+      size: 17081
+    - path: data/reports/v1/distribution_report.json
+      hash: md5
+      md5: e6af8d2c3a5ece2d218d3e22978c6a6d
+      size: 3301
+  autolabel@v1:
+    cmd: python scripts/20_autolabel.py --dataset v1
+    deps:
+    - path: configs/labeling.yaml
+      hash: md5
+      md5: 032902dac550b8b56bd8303369c41815
+      size: 1424
+    - path: data/raw/v1
+      hash: md5
+      md5: 71bd60df4924e3351b02128789f6e996.dir
+      size: 448055994
+      nfiles: 4832
+    - path: scripts/20_autolabel.py
+      hash: md5
+      md5: d64098c9c9c57f1ffcfe378a9a15d0f5
+      size: 3901
+    - path: src/driveloop/data/autolabel.py
+      hash: md5
+      md5: c79fc6c583b593b97492a2e47915cb08
+      size: 8410
+    - path: src/driveloop/data/geometry.py
+      hash: md5
+      md5: df3447395a5bdf65ce7d3c03b029726d
+      size: 3132
+    outs:
+    - path: data/processed/v1/labels
+      hash: md5
+      md5: 16e9de27dded14a23c1274e32097af83.dir
+      size: 1743888
+      nfiles: 17
+  autolabel@v2:
+    cmd: python scripts/20_autolabel.py --dataset v2
+    deps:
+    - path: configs/labeling.yaml
+      hash: md5
+      md5: 032902dac550b8b56bd8303369c41815
+      size: 1424
+    - path: data/raw/v2
+      hash: md5
+      md5: 9bc5ce4dfffe410ae85f139338021827.dir
+      size: 796698245
+      nfiles: 8356
+    - path: scripts/20_autolabel.py
+      hash: md5
+      md5: d64098c9c9c57f1ffcfe378a9a15d0f5
+      size: 3901
+    - path: src/driveloop/data/autolabel.py
+      hash: md5
+      md5: c79fc6c583b593b97492a2e47915cb08
+      size: 8410
+    - path: src/driveloop/data/geometry.py
+      hash: md5
+      md5: df3447395a5bdf65ce7d3c03b029726d
+      size: 3132
+    outs:
+    - path: data/processed/v2/labels
+      hash: md5
+      md5: 2015f14c290cc09646729fa03404d31b.dir
+      size: 4631405
+      nfiles: 25
+  metadata@v1:
+    cmd: python scripts/22_build_metadata.py --dataset v1
+    deps:
+    - path: configs/qc.yaml
+      hash: md5
+      md5: 75a995c6155b5d31094291b0626d8d2f
+      size: 548
+    - path: data/processed/v1/labels
+      hash: md5
+      md5: 16e9de27dded14a23c1274e32097af83.dir
+      size: 1743888
+      nfiles: 17
+    - path: data/raw/v1
+      hash: md5
+      md5: 71bd60df4924e3351b02128789f6e996.dir
+      size: 448055994
+      nfiles: 4832
+    - path: scripts/22_build_metadata.py
+      hash: md5
+      md5: 0136d8f0822e7e3a6478fb43f9c1708a
+      size: 4344
+    - path: src/driveloop/data/metadata.py
+      hash: md5
+      md5: bf38d0f7c52d7c929d90b4b21a7a4b46
+      size: 6979
+    outs:
+    - path: data/processed/v1/frames.parquet
+      hash: md5
+      md5: 4a02b46fa77c17aadf81fa8bf56ab860
+      size: 126670
+    - path: data/processed/v1/objects.parquet
+      hash: md5
+      md5: de7c4c28f8cf99eefb448b71f83bec7d
+      size: 146525
+    - path: data/processed/v1/qc_report.json
+      hash: md5
+      md5: d8e5016f80fb313acba338f6ab7ff94b
+      size: 681
+  metadata@v2:
+    cmd: python scripts/22_build_metadata.py --dataset v2
+    deps:
+    - path: configs/qc.yaml
+      hash: md5
+      md5: 75a995c6155b5d31094291b0626d8d2f
+      size: 548
+    - path: data/processed/v2/labels
+      hash: md5
+      md5: 2015f14c290cc09646729fa03404d31b.dir
+      size: 4631405
+      nfiles: 25
+    - path: data/raw/v2
+      hash: md5
+      md5: 9bc5ce4dfffe410ae85f139338021827.dir
+      size: 796698245
+      nfiles: 8356
+    - path: scripts/22_build_metadata.py
+      hash: md5
+      md5: 0136d8f0822e7e3a6478fb43f9c1708a
+      size: 4344
+    - path: src/driveloop/data/metadata.py
+      hash: md5
+      md5: bf38d0f7c52d7c929d90b4b21a7a4b46
+      size: 6979
+    outs:
+    - path: data/processed/v2/frames.parquet
+      hash: md5
+      md5: bb336890ae92660efa208cfb619d5806
+      size: 183714
+    - path: data/processed/v2/objects.parquet
+      hash: md5
+      md5: 6208f0ee7ad5dd675fdcaf99ac6a85cf
+      size: 284300
+    - path: data/processed/v2/qc_report.json
+      hash: md5
+      md5: 0a63f64f9b89a7449f108199746e2248
+      size: 685
+  dedup@v1:
+    cmd: python scripts/23_dedup.py --dataset v1 --samples 0
+    deps:
+    - path: configs/dedup.yaml
+      hash: md5
+      md5: 1b7bcd563d2e90eacb8d9d39ac754680
+      size: 715
+    - path: data/processed/v1/frames.parquet
+      hash: md5
+      md5: 4a02b46fa77c17aadf81fa8bf56ab860
+      size: 126670
+    - path: scripts/23_dedup.py
+      hash: md5
+      md5: b0106932856bfbeac0098953a8769ca1
+      size: 4088
+    - path: src/driveloop/data/dedup.py
+      hash: md5
+      md5: b9ac4a9bd91da90d04abbaf2b6109a78
+      size: 2120
+    outs:
+    - path: data/processed/v1/dedup.parquet
+      hash: md5
+      md5: 7b5fc8e4b673e5598701e0cfeb38a031
+      size: 14407
+    - path: data/processed/v1/dedup_report.json
+      hash: md5
+      md5: 174dae1f6e5edc5d969cffcd76315eb4
+      size: 721
+  dedup@v2:
+    cmd: python scripts/23_dedup.py --dataset v2 --samples 0
+    deps:
+    - path: configs/dedup.yaml
+      hash: md5
+      md5: 1b7bcd563d2e90eacb8d9d39ac754680
+      size: 715
+    - path: data/processed/v2/frames.parquet
+      hash: md5
+      md5: bb336890ae92660efa208cfb619d5806
+      size: 183714
+    - path: scripts/23_dedup.py
+      hash: md5
+      md5: b0106932856bfbeac0098953a8769ca1
+      size: 4088
+    - path: src/driveloop/data/dedup.py
+      hash: md5
+      md5: b9ac4a9bd91da90d04abbaf2b6109a78
+      size: 2120
+    outs:
+    - path: data/processed/v2/dedup.parquet
+      hash: md5
+      md5: 365bc43fd8cf54dd2748b26ff0698b7f
+      size: 20328
+    - path: data/processed/v2/dedup_report.json
+      hash: md5
+      md5: de08cefa8a527b9e8cba72858f7aee7e
+      size: 729
+  export_v1:
+    cmd: python scripts/24_export_yolo.py --config configs/export/v1.yaml
+    deps:
+    - path: configs/export/v1.yaml
+      hash: md5
+      md5: a24c7cc9485ccab78eda696857af05b2
+      size: 1072
+    - path: data/processed/v1/dedup.parquet
+      hash: md5
+      md5: 7b5fc8e4b673e5598701e0cfeb38a031
+      size: 14407
+    - path: data/processed/v1/frames.parquet
+      hash: md5
+      md5: 4a02b46fa77c17aadf81fa8bf56ab860
+      size: 126670
+    - path: data/processed/v1/labels
+      hash: md5
+      md5: 16e9de27dded14a23c1274e32097af83.dir
+      size: 1743888
+      nfiles: 17
+    - path: data/processed/v1/objects.parquet
+      hash: md5
+      md5: de7c4c28f8cf99eefb448b71f83bec7d
+      size: 146525
+    - path: data/raw/v1
+      hash: md5
+      md5: 71bd60df4924e3351b02128789f6e996.dir
+      size: 448055994
+      nfiles: 4832
+    - path: scripts/24_export_yolo.py
+      hash: md5
+      md5: dced3665b456ff9c702de2e8ca5f6a73
+      size: 7090
+    - path: src/driveloop/data/export.py
+      hash: md5
+      md5: ea2eea3b2dfb6555765d641d65fa14c3
+      size: 2110
+    outs:
+    - path: data/datasets/v1
+      hash: md5
+      md5: 4f1a4f47fd20ca69ccda2ba87bb0dbb9.dir
+      size: 308762283
+      nfiles: 3369
+  export_v2:
+    cmd: python scripts/24_export_yolo.py --config configs/export/v2.yaml
+    deps:
+    - path: configs/export/v2.yaml
+      hash: md5
+      md5: 8739eae1d2e69164f1814378c453b17f
+      size: 1145
+    - path: data/processed/v1/dedup.parquet
+      hash: md5
+      md5: 7b5fc8e4b673e5598701e0cfeb38a031
+      size: 14407
+    - path: data/processed/v1/frames.parquet
+      hash: md5
+      md5: 4a02b46fa77c17aadf81fa8bf56ab860
+      size: 126670
+    - path: data/processed/v1/labels
+      hash: md5
+      md5: 16e9de27dded14a23c1274e32097af83.dir
+      size: 1743888
+      nfiles: 17
+    - path: data/processed/v1/objects.parquet
+      hash: md5
+      md5: de7c4c28f8cf99eefb448b71f83bec7d
+      size: 146525
+    - path: data/processed/v2/dedup.parquet
+      hash: md5
+      md5: 365bc43fd8cf54dd2748b26ff0698b7f
+      size: 20328
+    - path: data/processed/v2/frames.parquet
+      hash: md5
+      md5: bb336890ae92660efa208cfb619d5806
+      size: 183714
+    - path: data/processed/v2/labels
+      hash: md5
+      md5: 2015f14c290cc09646729fa03404d31b.dir
+      size: 4631405
+      nfiles: 25
+    - path: data/processed/v2/objects.parquet
+      hash: md5
+      md5: 6208f0ee7ad5dd675fdcaf99ac6a85cf
+      size: 284300
+    - path: data/raw/v1
+      hash: md5
+      md5: 71bd60df4924e3351b02128789f6e996.dir
+      size: 448055994
+      nfiles: 4832
+    - path: data/raw/v2
+      hash: md5
+      md5: 9bc5ce4dfffe410ae85f139338021827.dir
+      size: 796698245
+      nfiles: 8356
+    - path: scripts/24_export_yolo.py
+      hash: md5
+      md5: dced3665b456ff9c702de2e8ca5f6a73
+      size: 7090
+    - path: src/driveloop/data/export.py
+      hash: md5
+      md5: ea2eea3b2dfb6555765d641d65fa14c3
+      size: 2110
+    outs:
+    - path: data/datasets/v2
+      hash: md5
+      md5: 61ce6607f73de7c6b217bffb9de0adcd.dir
+      size: 748315931
+      nfiles: 7977
+  report@v1:
+    cmd: python scripts/25_distribution_report.py --dataset v1 --config 
+      configs/report.yaml
+    deps:
+    - path: configs/report.yaml
+      hash: md5
+      md5: 4846f89cbb325c20efff7a9b1427151c
+      size: 777
+    - path: data/datasets/v1
+      hash: md5
+      md5: 4f1a4f47fd20ca69ccda2ba87bb0dbb9.dir
+      size: 308762283
+      nfiles: 3369
+    - path: scripts/25_distribution_report.py
+      hash: md5
+      md5: 04cff24b240259425097d51ec0d7aabe
+      size: 14113
+    outs:
+    - path: data/reports/v1/distribution.html
+      hash: md5
+      md5: 547eef834da923109406b592be7e4d50
+      size: 17079
+    - path: data/reports/v1/distribution_report.json
+      hash: md5
+      md5: 37da324569b2105dc6ca9ce285338521
+      size: 3347
+  report@v2:
+    cmd: python scripts/25_distribution_report.py --dataset v2 --config 
+      configs/report.yaml
+    deps:
+    - path: configs/report.yaml
+      hash: md5
+      md5: 4846f89cbb325c20efff7a9b1427151c
+      size: 777
+    - path: data/datasets/v2
+      hash: md5
+      md5: 61ce6607f73de7c6b217bffb9de0adcd.dir
+      size: 748315931
+      nfiles: 7977
+    - path: scripts/25_distribution_report.py
+      hash: md5
+      md5: 04cff24b240259425097d51ec0d7aabe
+      size: 14113
+    outs:
+    - path: data/reports/v2/distribution.html
+      hash: md5
+      md5: ee16da8a248c209cb613b09d5f7ce1cd
+      size: 20167
+    - path: data/reports/v2/distribution_report.json
+      hash: md5
+      md5: e9e47cdbb0fbae6667622121663652f2
+      size: 2061

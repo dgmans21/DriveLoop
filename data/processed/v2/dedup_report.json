@@ -1,0 +1,35 @@
+{
+  "dataset": "v2",
+  "rules": {
+    "version": 1,
+    "max_move_m": 0.5,
+    "max_hamming": 4,
+    "require_same_labels": true,
+    "max_gap_s": 10.0
+  },
+  "built_at": "2026-10-06T15:01:16",
+  "frames_before": 4154,
+  "frames_after": 2304,
+  "reasons": {
+    "moved": 1969,
+    "duplicate": 1850,
+    "labels_changed": 223,
+    "image_changed": 78,
+    "first": 24,
+    "max_gap": 10
+  },
+  "stopped_frames_before": 2146,
+  "stopped_frames_after": 315,
+  "objects_before": {
+    "n_vehicle": 5576,
+    "n_tl_red": 13156,
+    "n_tl_yellow": 2697,
+    "n_tl_green": 1614
+  },
+  "objects_after": {
+    "n_vehicle": 2665,
+    "n_tl_red": 4529,
+    "n_tl_yellow": 825,
+    "n_tl_green": 1112
+  }
+}
