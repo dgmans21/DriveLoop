@@ -1,7 +1,20 @@
+import shutil
+
 import numpy as np
+import pytest
 
 from driveloop.perception.association import Detection
-from driveloop.viz.overlay import Mp4Recorder, draw_detections, draw_panel, paste_inset
+from driveloop.viz.overlay import Mp4Recorder, draw_detections, draw_panel, paste_inset, to_web_mp4
+
+
+@pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="ffmpeg 없음")
+def test_to_web_mp4_converts_for_browser(tmp_path):
+    rec = Mp4Recorder(tmp_path / "raw.mp4", 20, (64, 48))
+    for i in range(10):
+        rec.write(np.full((48, 64, 3), i * 20, np.uint8))
+    rec.close()
+    assert to_web_mp4(rec.path, tmp_path / "web.mp4")
+    assert (tmp_path / "web.mp4").stat().st_size > 0
 
 
 def test_overlay_functions_keep_shape_and_do_not_modify_input():

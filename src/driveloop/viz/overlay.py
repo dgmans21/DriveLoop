@@ -65,6 +65,19 @@ def paste_inset(img: np.ndarray, inset: np.ndarray, scale: float = 0.3, margin: 
     return out
 
 
+def to_web_mp4(src, dst, crf: int = 23) -> bool:
+    """OpenCV 녹화(mp4v)는 브라우저에서 재생되지 않는다 → ffmpeg로 H.264 변환. ffmpeg가 없으면 False."""
+    import shutil
+    import subprocess
+
+    ffmpeg = shutil.which("ffmpeg")
+    if ffmpeg is None:
+        return False
+    subprocess.run([ffmpeg, "-y", "-loglevel", "error", "-i", str(src), "-c:v", "libx264", "-crf", str(crf),
+                    "-preset", "medium", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(dst)], check=True)
+    return True
+
+
 class Mp4Recorder:
     def __init__(self, path, fps: float, size: tuple[int, int]) -> None:
         self.path = path

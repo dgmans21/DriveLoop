@@ -83,12 +83,16 @@ class TemporalVoter:
     - 관측 없음(None)은 투표에 넣지 않는다 (한두 프레임 놓쳐도 직전 판단 유지)
     - 유효 관측이 min_votes 미만이면 UNKNOWN
     - RED 우선: RED가 red_votes 이상이면 다수결과 무관하게 RED (놓치면 신호 위반이므로 보수적으로)
+    - YELLOW 우선: RED가 아니고 YELLOW가 yellow_votes 이상이면 GREEN보다 YELLOW
+      → 안전 순서 RED > YELLOW > GREEN. Town05 주행에서 노란불을 3프레임 GREEN으로 오인해
+        0.15초 정지를 풀었던 사례 (2026-10-07). 실제 신호는 노랑 다음이 항상 빨강이라 손해가 없다
     """
 
-    def __init__(self, window: int = 5, min_votes: int = 2, red_votes: int = 2) -> None:
+    def __init__(self, window: int = 5, min_votes: int = 2, red_votes: int = 2, yellow_votes: int = 2) -> None:
         self._hist: deque[str | None] = deque(maxlen=window)
         self.min_votes = min_votes
         self.red_votes = red_votes
+        self.yellow_votes = yellow_votes
 
     def reset(self) -> None:
         self._hist.clear()
@@ -100,4 +104,6 @@ class TemporalVoter:
             return "UNKNOWN"
         if votes["RED"] >= self.red_votes:
             return "RED"
+        if votes["YELLOW"] >= self.yellow_votes:
+            return "YELLOW"
         return votes.most_common(1)[0][0]

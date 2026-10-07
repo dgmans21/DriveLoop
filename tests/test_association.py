@@ -61,6 +61,28 @@ def test_voter_single_red_glitch_does_not_flip():
     assert out == "GREEN"
 
 
+def test_voter_yellow_beats_green_when_misread():
+    # Town05 실제 사례: 노란불을 3프레임 GREEN으로 오인 → 다수결이면 GREEN이 이겨 정지를 풀었다
+    v = TemporalVoter(window=5, min_votes=2, red_votes=2, yellow_votes=2)
+    for s in ("YELLOW", "YELLOW", "GREEN", "GREEN", "GREEN"):
+        out = v.update(s)
+    assert out == "YELLOW"
+
+
+def test_voter_single_yellow_glitch_does_not_flip_green():
+    v = TemporalVoter(window=5, min_votes=2, red_votes=2, yellow_votes=2)
+    for s in ("GREEN", "GREEN", "YELLOW", "GREEN"):
+        out = v.update(s)
+    assert out == "GREEN"
+
+
+def test_voter_red_still_beats_yellow():
+    v = TemporalVoter(window=5, min_votes=2, red_votes=2, yellow_votes=2)
+    for s in ("YELLOW", "YELLOW", "YELLOW", "RED", "RED"):
+        out = v.update(s)
+    assert out == "RED"
+
+
 def test_voter_goes_unknown_when_light_lost_for_long():
     v = TemporalVoter(window=5, min_votes=2, red_votes=2)
     for s in ("GREEN", "GREEN", None, None, None, None):
