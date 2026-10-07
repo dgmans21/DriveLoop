@@ -84,6 +84,20 @@
     const n = md.proper_stops || 0;
     $("#cmp-note").textContent = t("cmp.note").replaceAll("{n}", n).replace("{ub}", n ? (300 / n).toFixed(1) : "-");
 
+    const fix = compare.baseline && compare.baseline.by_perception && compare.baseline.by_perception.model;
+    $("#cmp-fix").closest(".table-wrap").classList.toggle("hidden", !fix);
+    if (fix) {
+      const fv = (key, v) => v == null ? "-" : key === "brake_need_max" && v >= 99 ? t("cmp.inf")
+        : key === "decision_agree" ? `${(v * 100).toFixed(1)}%` : String(v);
+      const fc = t("cmp.fixCols");
+      $("#cmp-fix").innerHTML = `<thead><tr>${fc.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>` +
+        t("cmp.fixRows").map(([key, label]) => {
+          const [a, b] = fix[key] || [null, null];
+          const better = ["stop_over_line", "brake_need_max"].includes(key) && a != null && b != null && b < a;
+          return `<tr><td>${label}</td><td>${fv(key, a)}</td><td class="${better ? "up" : "hl"}">${fv(key, b)}</td></tr>`;
+        }).join("") + "</tbody>";
+    }
+
     const k = t("cmp.caseK"), sev = t("cmp.sev");
     $("#cmp-cases").innerHTML = t("cmp.cases").map(([s, h, a, b, c]) =>
       `<article class="card"><h3>${h}<span class="sev ${s}">${sev[s]}</span></h3><dl><dt>${k[0]}</dt><dd>${a}</dd>` +

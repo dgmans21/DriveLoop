@@ -20,9 +20,23 @@ window.I18N = {
     "hud.perc": "인지", "hud.light": "신호", "hud.state": "판단", "hud.speed": "속도", "hud.infer": "추론",
     "nav.compare": "정답값 vs 내 모델",
     "cmp.title": "정답값 인지 vs 내 모델 인지 — 같은 길, 같은 신호에서 운전 비교",
-    "cmp.sub": "같은 출발 지점·경로·신호 주기에서 인지만 바꿔 주행했다 (판단·제어 코드는 동일). 처음 보는 도시 Town05, 4개 날씨 × 시드 5 × 120초 = 40회.",
+    "cmp.sub": "같은 출발 지점·경로·신호 주기에서 인지만 바꿔 주행했다 (판단·제어 코드는 동일). 처음 보는 도시 Town05, 4개 날씨 × 시드 5 × 120초 = 40회. 아래 표는 안전장치를 넣은 뒤(v2) 결과.",
     "cmp.byCond": "날씨별",
-    "cmp.found": "비교로 찾은 위험한 장면",
+    "cmp.found": "첫 비교(v1)에서 찾은 위험한 장면",
+    "cmp.fixTitle": "고친 뒤 같은 40회를 다시 — 내 모델 인지, v1 → v2",
+    "cmp.fixSub": "판단 규칙 두 가지만 바꿨다 (맵·날씨·시드·모델·임계값은 그대로): ① 신호 색을 모르면 정지선에서 편안하게(2 m/s²) 설 수 있는 속도로 제한 ② 초록 직후 '설 수 없는 거리의 빨강'은 노란불 딜레마로 처리.",
+    "cmp.fixCols": ["", "v1 (고치기 전)", "v2 (안전장치)"],
+    "cmp.fixRows": [
+      ["stop_over_line", "정지선을 넘어서 정지"],
+      ["brake_need_max", "가장 센 제동 (정지 시작 때 필요한 감속도, m/s²)"],
+      ["red_violations", "빨간불 위반"],
+      ["proper_stops", "정상 정지"],
+      ["false_brakes", "불필요한 감속"],
+      ["caution_s", "모름 때문에 속도를 낮춘 시간 (20회 합, 초)"],
+      ["decision_agree", "판단 일치율"]
+    ],
+    "cmp.inf": "멈출 수 없음",
+    "cmp.fixNote": "위험 장면 두 건이 모두 사라졌고, 대가는 20회 합쳐 0.8초의 감속. 숫자는 주행 로그에서 다시 계산 (지표 코드를 고치면 v1·v2 모두 같은 기준으로 재계산).",
     "cmp.cols": ["", "정답값 인지", "내 모델 인지"],
     "cmp.condCols": ["날씨", "인지", "빨간불 위반", "정지 (정상/전체)", "불필요한 정지", "정지 위치 오차", "출발 지연", "판단 일치율"],
     "cmp.rows": [
@@ -38,8 +52,8 @@ window.I18N = {
     "cmp.note": "빨간불에서 서야 했던 {n}번 모두 정답값과 똑같이 정지. 다만 {n}번 중 위반 0번이 말해 주는 위반율 상한은 약 {ub}% — 실제 차량 기준(수백만 번에 1번 이하)과는 거리가 멀다. 출발 지연 0.15초는 안전을 위한 투표 규칙(빨간불 우선)에서 나오는 고정값.",
     "cmp.sev": { "high": "높음", "mid": "중간", "low": "낮음" },
     "cmp.cases": [
-      ["high", "노란불 판단 보류 → 늦은 급제동", "정지선 23m 앞에서 노란불로 바뀌었는데 모델이 1.2초 동안 신호를 확정하지 못해 12m에서야 3.0 m/s²로 정지. 0.3초만 더 늦었으면 '멈출 수 없음'으로 통과할 뻔.", "판단 보류(UNKNOWN)일 때 '직전 판단 유지' → 안전장치 없음", "정지선 가까이에서 보류면 미리 감속 (다음 단계)"],
-      ["mid", "멈출 수 없는 거리에서 급제동, 정지선 1.36m 넘어 정지", "0.15초 늦은 출발로 다음 신호 도착이 어긋나 정지선 4m 앞에서 노란불. 정답값은 딜레마 규칙대로 통과, 모델은 노란불을 빨강으로 1프레임 오인해 급제동.", "초록 → 빨강은 실제로 불가능한 순서인데 그대로 믿음", "직전까지 초록이었으면 멈출 수 없는 거리에선 노란불 딜레마로 처리 (다음 단계)"],
+      ["high", "노란불 판단 보류 → 늦은 급제동", "정지선 23m 앞에서 노란불로 바뀌었는데 모델이 1.2초 동안 신호를 확정하지 못해 12m에서야 3.0 m/s²로 정지. 0.3초만 더 늦었으면 '멈출 수 없음'으로 통과할 뻔.", "판단 보류(UNKNOWN)일 때 '직전 판단 유지' → 안전장치 없음", "✅ v2: 모르면 미리 감속 → 같은 장면에서 18m부터 감속, 15m에서 노란불 확인, 제동 3.0 → 1.96 m/s²"],
+      ["mid", "멈출 수 없는 거리에서 급제동, 정지선 1.36m 넘어 정지", "0.15초 늦은 출발로 다음 신호 도착이 어긋나 정지선 4m 앞에서 노란불. 정답값은 딜레마 규칙대로 통과, 모델은 노란불을 빨강으로 1프레임 오인해 급제동.", "초록 → 빨강은 실제로 불가능한 순서인데 그대로 믿음", "✅ v2: 노란불 딜레마로 처리 → 정지선 넘음 0, 주행 경로가 정답값과 같아짐"],
       ["low", "출발 직후 0.2초 감속", "신호 15.9m 앞에서 출발, 첫 프레임에 초록을 노랑으로 읽음", "투표 창이 비어 있는 첫 순간", "영향 작음 — 유지"]
     ],
     "cmp.caseK": ["무슨 일", "원인", "대책"],
@@ -106,9 +120,23 @@ window.I18N = {
     "hud.perc": "perc", "hud.light": "light", "hud.state": "state", "hud.speed": "speed", "hud.infer": "infer",
     "nav.compare": "Ground truth vs model",
     "cmp.title": "Ground-truth perception vs my model — same roads, same lights",
-    "cmp.sub": "Same start, route and light cycle; only perception differs (identical planning & control code). Unseen town Town05, 4 weathers × 5 seeds × 120 s = 40 runs.",
+    "cmp.sub": "Same start, route and light cycle; only perception differs (identical planning & control code). Unseen town Town05, 4 weathers × 5 seeds × 120 s = 40 runs. Tables show results after the safety fixes (v2).",
     "cmp.byCond": "By weather",
-    "cmp.found": "Risky moments the comparison found",
+    "cmp.found": "Risky moments the first comparison (v1) found",
+    "cmp.fixTitle": "Fixed, then the same 40 runs again — my model, v1 → v2",
+    "cmp.fixSub": "Only two planning rules changed (map, weather, seeds, model, threshold unchanged): ① when the light color is unknown, cap speed so the car can always stop at the line comfortably (2 m/s²) ② a 'red you can no longer stop for' right after green is treated as a yellow dilemma.",
+    "cmp.fixCols": ["", "v1 (before)", "v2 (safety rules)"],
+    "cmp.fixRows": [
+      ["stop_over_line", "stopped past the line"],
+      ["brake_need_max", "hardest braking (decel needed when stopping starts, m/s²)"],
+      ["red_violations", "red-light violations"],
+      ["proper_stops", "proper stops"],
+      ["false_brakes", "unneeded braking"],
+      ["caution_s", "time slowed because unsure (sum of 20 runs, s)"],
+      ["decision_agree", "decision agreement"]
+    ],
+    "cmp.inf": "cannot stop",
+    "cmp.fixNote": "Both risky moments are gone, at the cost of 0.8 s of slowing over 20 runs. Numbers are recomputed from the drive logs (fixing a metric re-scores v1 and v2 the same way).",
     "cmp.cols": ["", "ground truth", "my model"],
     "cmp.condCols": ["weather", "perception", "red violations", "stops (proper/all)", "unneeded stops", "stop position error", "start delay", "decision agreement"],
     "cmp.rows": [
@@ -124,8 +152,8 @@ window.I18N = {
     "cmp.note": "All {n} required stops matched ground truth. Still, 0 violations in {n} only bounds the violation rate below ~{ub}% — far from automotive targets. The constant 0.15 s start delay comes from the safety vote (red priority).",
     "cmp.sev": { "high": "high", "mid": "medium", "low": "low" },
     "cmp.cases": [
-      ["high", "Unsure on yellow → late hard braking", "The light turned yellow 23 m before the line, but the model stayed unsure for 1.2 s and stopped from 12 m at 3.0 m/s². 0.3 s later and it would have judged 'cannot stop' and gone through.", "On UNKNOWN the planner keeps its last decision — no fallback", "Slow down when unsure near the stop line (next step)"],
-      ["mid", "Hard braking when it could no longer stop; stopped 1.36 m past the line", "A 0.15 s later start shifted arrival; yellow came 4 m before the line. Ground truth went through (dilemma rule); the model read yellow as red for one frame and braked.", "Trusted green → red, a sequence real lights never show", "If it was green until now and stopping is impossible, treat as a yellow dilemma (next step)"],
+      ["high", "Unsure on yellow → late hard braking", "The light turned yellow 23 m before the line, but the model stayed unsure for 1.2 s and stopped from 12 m at 3.0 m/s². 0.3 s later and it would have judged 'cannot stop' and gone through.", "On UNKNOWN the planner keeps its last decision — no fallback", "✅ v2: slow down when unsure → in the same scene it slows from 18 m, sees yellow at 15 m, braking 3.0 → 1.96 m/s²"],
+      ["mid", "Hard braking when it could no longer stop; stopped 1.36 m past the line", "A 0.15 s later start shifted arrival; yellow came 4 m before the line. Ground truth went through (dilemma rule); the model read yellow as red for one frame and braked.", "Trusted green → red, a sequence real lights never show", "✅ v2: treated as a yellow dilemma → 0 stops past the line, route now matches ground truth"],
       ["low", "0.2 s braking right after start", "Started 15.9 m before a light; first frame read green as yellow", "Empty vote window at the very first moment", "Minor — keep"]
     ],
     "cmp.caseK": ["what", "cause", "fix"],

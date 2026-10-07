@@ -54,6 +54,15 @@ def test_stop_on_green_is_false_stop_and_false_brake():
     assert s["false_stops"] == 1 and s["false_brakes"] == 1
 
 
+def test_far_stopping_decision_without_slowdown_is_not_false_brake():
+    # 31m 앞에서 1~2프레임 STOPPING이 됐지만 목표 속도가 순항 그대로 → 차는 감속하지 않음
+    log = make_log([("CRUISE", "GREEN", 32.0, 8), ("STOPPING", "GREEN", 31.0, 8), ("CRUISE", "GREEN", 30.0, 8)])
+    log["target_speed"] = [8.33, 8.33, 8.33]
+    assert false_brakes(log) == 0
+    log["target_speed"] = [8.33, 6.0, 8.33]          # 실제로 감속 지시가 나가면 센다
+    assert false_brakes(log) == 1
+
+
 def test_braking_for_red_is_not_false_brake():
     log = make_log([("CRUISE", "RED", 30.0, 8), ("STOPPING", "RED", 25.0, 7)])
     assert false_brakes(log) == 0
@@ -66,10 +75,17 @@ def test_summary_is_json_serializable():
     json.dumps(nan_to_none(summarize_run(log, DT, stop_margin=2.0)))
 
 
-def test_caution_time_counts_only_actual_slowdown():
+def test_caution_time_counts_only_when_the_rule_limits_speed():
+    # 30m: 제한 sqrt(2·2·28)=10.6 > 순항 8.33 → 안 셈 / 12m: sqrt(2·2·10)=6.3 → 셈
     log = make_log([("CRUISE", "GREEN", 40.0, 8), ("CAUTION", None, 30.0, 8), ("CAUTION", None, 12.0, 7)])
-    log["target_speed"] = [8.33, 8.33, 6.3]       # 두 번째 CAUTION만 실제로 감속 지시
+    log["target_speed"] = [8.33, 5.0, 6.3]        # 30m의 5.0은 커브 제한 → CAUTION 효과로 세지 않는다
     assert summarize_run(log, DT, stop_margin=2.0)["caution_s"] == DT
+
+
+def test_brake_need_is_required_decel_when_stopping_starts():
+    # 정지선 12m (정지 지점 10m) 앞, 8 m/s에서 정지 시작 → 8²/(2·10) = 3.2 m/s²
+    log = make_log([("CRUISE", "YELLOW", 14.0, 8), ("STOPPING", "YELLOW", 12.0, 8), ("STOPPING", "YELLOW", 8.0, 5)])
+    assert summarize_run(log, DT, stop_margin=2.0)["brake_need_max"] == 3.2
 
 
 def test_stop_without_green_has_no_delay():

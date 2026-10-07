@@ -14,6 +14,7 @@ CARLA 시뮬레이터에서 **데이터 수집 → 자동 라벨링 → 품질�
 | 먼 신호·작은 객체 | 빨간불 12–16px 0.62 → 0.74, 차량 12–16px 0.46 → 0.59 |
 | 추론 | YOLO11n 1280px, 중앙값 약 12ms (RTX 4060 Ti 8GB) |
 | 정답값 인지 vs 내 모델 인지 (같은 경로·신호, 40회) | 정상 정지 52/52 vs 52/52, 위반 0 vs 0, 판단 일치율 97.6%, 출발 지연 0.15초. 비교로 위험 장면 2건 발견 (판단 보류 중 늦은 제동, 멈출 수 없는 거리 급제동) |
+| 안전장치 후 재비교 (같은 40회) | 위험 장면 2건 모두 해소: 정지선 넘음 1 → 0, 최대 제동 '멈출 수 없음' → 1.96 m/s². 대가는 20회 합 0.8초 감속 |
 
 ## 설계 원칙
 
@@ -69,7 +70,7 @@ DriveLoop/
 | 2-4 | 내 모델로 인지 교체 주행, 날씨·시간 옵션, 웹용 녹화(영상 + 프레임별 JSON) | ✅ `04_model_drive.py` |
 | 결과 페이지 | 오버레이 플레이어 + 2D 지도 + 타임라인, 한국어/영어, gh-pages 단일 커밋 배포 | ✅ `40_build_site.py`, `41_publish_site.ps1` |
 | 3 | 정답값 인지 vs 모델 인지 주행 비교 (Town05, 4개 날씨 × 시드 5 × 2 = 40회). 판단·제어는 `agent.py`로 동일 | ✅ 정지해야 할 52번 모두 정답값과 같이 정지, 위반 0. 위험 장면 2건 발견 → 3+ |
-| 3+ | 안전장치: 정지선 가까이에서 신호 판단 보류(UNKNOWN)면 감속 (지금은 직전 판단 유지 → 끝까지 못 보면 통과 위험) | 📝 다음 |
+| 3+ | 안전장치 ① 신호 색을 모르면 정지선에서 편안하게 설 수 있는 속도로 제한(CAUTION) ② 초록 직후 '설 수 없는 거리의 빨강'은 노란불 딜레마로 → 같은 40회 재비교(compare_v2) | ✅ 정지선 넘음 1→0, 최대 제동 '멈출 수 없음'→1.96 m/s², 대가 감속 0.8초(20회 합) |
 | 1 미완 | **장애물(앞차) 대응** — 처음 범위에 있었으나 신호등만 구현. 차량은 검출·평가까지만 있고 주행 판단에 안 씀 | 📝 다음 |
 | ACC | 앞차 따라가기: ① 판단(시간 간격 유지, 앞차 정지 시 정지) + 앞차 거리는 정답값 → ② 모델 차량 검출 + 카메라 거리 추정으로 교체, 정답값 대비 비교 → 데모·비교에 NPC 추가 | 📝 |
 | v4 | 보행자: 수집 → 클래스 추가 → 재학습 → "앞에 있으면 정지" (ACC 정지 로직 재사용) | 📝 |
@@ -99,6 +100,8 @@ python scripts\04_model_drive.py --map Town05 --weather rain --time night --seco
 # 3단계: 정답값 vs 모델 주행 비교 (끝난 실행은 건너뜀) → 분석
 python scripts\50_compare_drive.py --only clear_noon,rain_noon
 python scripts\51_compare_report.py
+python scripts\50_compare_drive.py --config configs\eval\compare_v2.yaml          # 안전장치 후 재비교
+python scripts\51_compare_report.py --config configs\eval\compare_v2.yaml --baseline compare_v1
 
 # 결과 페이지
 python scripts\40_build_site.py                # outputs/web → docs/assets (영상 압축, 2D 지도)

@@ -11,7 +11,10 @@ gt_* 는 정답값 기준 '내 신호등'의 상태 / 앞 범퍼~정지선 거�
   정지 위치 = gt_dist (판단은 정지선 stop_margin m 앞을 목표로 한다)
 - 출발 지연: 정지 중 정답 신호가 GREEN으로 바뀐 순간 → STOPPED를 벗어난 순간
 - 불필요한 감속: 정답 신호가 GREEN(또는 없음)인데 STOPPING에 들어간 횟수
-- 주의 감속 시간(caution_s): CAUTION(색을 몰라 속도 제한) 상태에서 실제로 순항보다 느리게 가라고 한 시간
+- 주의 감속 시간(caution_s): CAUTION(색을 몰라 속도 제한)의 제한 속도 sqrt(2·comfort_decel·gap)가
+  순항 속도보다 낮았던 시간 (= 안전장치가 실제로 속도를 깎은 시간. 커브 감속은 제외)
+- 제동 강도(brake_need_max): STOPPING에 들어간 순간 정지 지점(정지선 − stop_margin)까지 서는 데 필요한 감속도
+  v²/(2·gap)의 최댓값. 늦게 알아챌수록 커진다 (판단의 max_stop_decel = 4 m/s²가 '설 수 있음'의 한계)
 """
 from __future__ import annotations
 
@@ -60,12 +63,43 @@ def stops(log: pd.DataFrame) -> list[dict]:
 
 
 def false_brakes(log: pd.DataFrame) -> int:
+    """정답 신호가 초록(또는 없음)인데 STOPPING에 들어가 **실제로 감속을 지시한** 횟수.
+
+    멀리서(정지 프로파일 속도 > 순항 속도) 잠깐 STOPPING이 됐다 풀리면 차는 감속하지 않으므로 세지 않는다
+    (compare_v2에서 31m 앞 1~2프레임 오인이 '판단만' 바뀌고 속도는 그대로였던 경우).
+    """
+    s = log.state.reset_index(drop=True)
+    gt = log.gt_state.reset_index(drop=True)
+    target = log.target_speed.reset_index(drop=True) if "target_speed" in log else None
+    cruise = target.max() if target is not None else None
+    n = 0
+    for i in range(len(s)):
+        if s[i] != "STOPPING" or (i > 0 and s[i - 1] == "STOPPING") or gt[i] in STOP_STATES:
+            continue
+        if target is None:
+            n += 1
+            continue
+        j = i
+        while j < len(s) and s[j] == "STOPPING":
+            if target[j] < cruise - 0.05:
+                n += 1
+                break
+            j += 1
+    return n
+
+
+def brake_needs(log: pd.DataFrame, stop_margin: float) -> list[float]:
     s = log.state
-    entering = (s == "STOPPING") & (s.shift() != "STOPPING")
-    return int((entering & ~log.gt_state.isin(STOP_STATES)).sum())
+    entering = (s == "STOPPING") & (s.shift() != "STOPPING") & log.gt_dist.notna()
+    out = []
+    for v, d in zip(log.speed[entering], log.gt_dist[entering]):
+        gap = d - stop_margin
+        out.append(round(v * v / (2 * gap), 2) if gap > 0.05 else float("inf"))
+    return out
 
 
-def summarize_run(log: pd.DataFrame, dt: float, stop_margin: float) -> dict:
+def summarize_run(log: pd.DataFrame, dt: float, stop_margin: float, comfort_decel: float = 2.0,
+                  cruise_speed: float = 30 / 3.6) -> dict:
     cr = crossings(log)
     st = stops(log)
     proper = [e for e in st if e["proper"]]
@@ -82,9 +116,11 @@ def summarize_run(log: pd.DataFrame, dt: float, stop_margin: float) -> dict:
         "proper_stops": len(proper),
         "false_stops": len(st) - len(proper),
         "false_brakes": false_brakes(log),
+        "brake_need_max": (lambda n: min(max(n), 99.0) if n else None)(brake_needs(log, stop_margin)),
+        # 기록된 target_speed는 커브 제한까지 적용된 값이라 CAUTION 효과와 섞인다 → CAUTION 규칙 자체의 제한 속도로 판정
         "caution_s": round(float(((log.state == "CAUTION") &
-                                  (log.target_speed < log.target_speed.max() - 0.05)).sum() * dt), 2)
-        if "target_speed" in log else 0.0,
+                                  ((2 * comfort_decel * (log.gt_dist - stop_margin).clip(lower=0)) ** 0.5
+                                   < cruise_speed - 0.05)).sum() * dt), 2),
         "stop_err_mean": round(sum(abs(p - stop_margin) for p in pos) / len(pos), 2) if pos else None,
         "stop_over_line": sum(p < 0 for p in pos),                 # 정지선을 넘어서 섰음
         "start_delay_mean": round(sum(delays) / len(delays), 2) if delays else None,

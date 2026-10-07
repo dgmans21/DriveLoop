@@ -2,6 +2,7 @@
 
     python scripts/51_compare_report.py                  # configs/eval/compare_v1.yaml
     python scripts/51_compare_report.py --events 10      # 사건 목록 길이
+    python scripts/51_compare_report.py --config configs/eval/compare_v2.yaml --baseline compare_v1   # 전/후 비교
 
 요약은 실행 시점 JSON이 아니라 CSV에서 다시 계산한다 (지표 코드를 고치면 바로 반영).
 출력: <output_root>/<name>/summary.json, runs.csv  (웹 페이지는 40_build_site.py가 summary.json을 가져간다)
@@ -18,13 +19,13 @@ from driveloop.eval.driving import nan_to_none, summarize_run
 COND_ORDER = ["clear_noon", "rain_noon", "clear_night", "rain_night"]
 
 
-def load_runs(run_dir: Path, dt: float, stop_margin: float) -> tuple[pd.DataFrame, dict]:
+def load_runs(run_dir: Path, dt: float, drv) -> tuple[pd.DataFrame, dict]:
     rows, logs = [], {}
     for csv in sorted(run_dir.glob("*.csv")):
         cond, seed, perc = csv.stem.rsplit("_", 2)
         log = pd.read_csv(csv)
         meta = json.loads(csv.with_suffix(".json").read_text(encoding="utf-8")) if csv.with_suffix(".json").exists() else {}
-        s = nan_to_none(summarize_run(log, dt, stop_margin))
+        s = nan_to_none(summarize_run(log, dt, drv.stop_margin, drv.comfort_decel, drv.cruise_speed_kmh / 3.6))
         s.update({"condition": cond, "seed": int(seed[1:]), "perception": perc,
                   "collisions": meta.get("collisions"), "wall_s": meta.get("wall_s"),
                   "infer_ms_median": meta.get("infer_ms_median")})
@@ -76,6 +77,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default=str(PROJECT_ROOT / "configs" / "eval" / "compare_v1.yaml"))
     ap.add_argument("--events", type=int, default=15)
+    ap.add_argument("--baseline", default=None, help="비교 기준 실험 이름 (예: compare_v1) → 모델 인지 전/후 표")
     args = ap.parse_args()
 
     import yaml
@@ -83,7 +85,7 @@ def main() -> None:
     base = PROJECT_ROOT / cfg["output_root"] / cfg["name"]
     dt = load_sim_config().fixed_delta_seconds
     drv = load_driving_config()
-    runs, logs = load_runs(base / "runs", dt, drv.stop_margin)
+    runs, logs = load_runs(base / "runs", dt, drv)
     if runs.empty:
         raise SystemExit(f"실행 로그 없음: {base / 'runs'}")
     table = aggregate(runs)
@@ -93,10 +95,30 @@ def main() -> None:
     total["decision_agree"] = runs.groupby("perception").decision_agree.mean().round(3)
     events = model_events(logs, args.events)
 
+    total["brake_need_max"] = runs.groupby("perception").brake_need_max.max()
+
+    baseline = None
+    if args.baseline:
+        b_runs, _ = load_runs(PROJECT_ROOT / cfg["output_root"] / args.baseline / "runs", dt, drv)
+        keys = ["seed", "condition", "perception"]
+        both = runs.merge(b_runs, on=keys, suffixes=("", "_base"))        # 양쪽에 다 있는 실행만 (공정한 비교)
+        cols = ["red_violations", "proper_stops", "false_stops", "false_brakes", "stop_over_line", "caution_s",
+                "collisions"]
+        rows = {}
+        for p, g in both.groupby("perception"):
+            r = {c: [int(g[f"{c}_base"].sum()) if c != "caution_s" else round(float(g[f"{c}_base"].sum()), 2),
+                     int(g[c].sum()) if c != "caution_s" else round(float(g[c].sum()), 2)] for c in cols}
+            r["brake_need_max"] = [float(g.brake_need_max_base.max()), float(g.brake_need_max.max())]
+            r["decision_agree"] = [round(float(g.decision_agree_base.mean()), 3), round(float(g.decision_agree.mean()), 3)]
+            r["runs"] = len(g)
+            rows[p] = r
+        baseline = {"name": args.baseline, "by_perception": rows}
+
     runs.to_csv(base / "runs.csv", index=False)
     summary = {"name": cfg["name"], "map": cfg["map"], "seconds": cfg["seconds"], "seeds": cfg["seeds"],
                "runs": len(runs), "by_condition": table.astype({"condition": str}).to_dict(orient="records"),
-               "total": {p: nan_to_none(r.to_dict()) for p, r in total.iterrows()}, "events": events}
+               "total": {p: nan_to_none(r.to_dict()) for p, r in total.iterrows()}, "events": events,
+               "baseline": baseline}
     (base / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
 
     pd.set_option("display.width", 200)
@@ -106,6 +128,13 @@ def main() -> None:
     print(f"\n-- 모델만의 사건 (상위 {len(events)})")
     for e in events:
         print("  ", e)
+    if baseline:
+        print(f"\n-- 전/후: {args.baseline} → {cfg['name']} (양쪽 모두 있는 실행만)")
+        for p, r in baseline["by_perception"].items():
+            print(f"   [{p}] {r['runs']}회")
+            for k, v in r.items():
+                if k != "runs":
+                    print(f"      {k:16} {v[0]!s:>8} → {v[1]!s:<8}")
     print(f"\n[compare] → {base / 'summary.json'}")
 
 

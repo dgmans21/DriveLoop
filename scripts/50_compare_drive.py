@@ -127,7 +127,7 @@ def run_one(client, world, sim_cfg, drv, cfg: CompareConfig, seed: int, percepti
         w.writerows(rows)
     csv_path.with_suffix(".csv.partial").replace(csv_path)
     log = pd.read_csv(csv_path)
-    summary = nan_to_none(summarize_run(log, dt, drv.stop_margin))
+    summary = nan_to_none(summarize_run(log, dt, drv.stop_margin, drv.comfort_decel, drv.cruise_speed_kmh / 3.6))
     summary.update({"spawn": spawn, "collisions": len(collisions), "collision_with": sorted(set(collisions)),
                     "wall_s": round(wall, 1),
                     "infer_ms_median": None if log.infer_ms.isna().all() else round(float(log.infer_ms.median()), 1)})
