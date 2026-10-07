@@ -8,6 +8,7 @@ window.I18N = {
     "stat.redrun": "빨간불 위반 (4개 날씨 × 180초)",
     "stat.recall": "처음 보는 도시 빨간불 재현율, 데이터만 바꿔서",
     "stat.color": "고른 신호의 색 정확도",
+    "stat.safety": "비교로 찾은 위험 장면 → 고친 뒤 같은 40회 재검증",
     "stat.infer": "추론 시간 (중앙값, RTX 4060 Ti)",
     "demo.title": "주행 데모 — 처음 보는 도시 Town05",
     "demo.sub": "영상 위 박스는 녹화된 모델 출력을 브라우저가 그린 것. 2D 지도는 밤·비에도 무슨 일이 일어나는지 또렷하게 보여 준다. 타임라인을 누르면 그 장면으로 이동.",
@@ -91,11 +92,12 @@ window.I18N = {
     "res.k": ["원인", "측정", "해결"],
     "lim.title": "한계와 다음 단계",
     "lim.items": [
+      "앞차 따라가기 진행 중 — 판단(안전 속도 + 시간 간격)과 카메라 거리 추정(바닥선, 20m 이내 오차 0.3~0.45m)은 완료, NPC 교통 속 정답값 vs 모델 비교 중. 지금 데모 영상에는 다른 차량이 없다",
       "보행자 미지원 — 같은 파이프라인에 클래스 추가 예정 (v4)",
-      "앞차 따라가기 없음 — 그래서 데모에 다른 차량이 없다. 차량 검출은 테스트 지표로만 검증",
       "눈 날씨 미검증 — CARLA 0.9.16에 눈이 없음. 실제 데이터(sim-to-real)로 보완 계획",
-      "남은 약점: 아주 작은 신호(<12px) 재현율 0.53, 비 오는 밤 차량 0.64",
-      "다음: 정답값 인지 vs 모델 인지 주행 비교(여러 시드), 실제 도로 데이터로 sim-to-real 측정"
+      "카메라 거리는 평평한 도로 가정 — 언덕이 많은 Town03에서 30m 이상 오차가 커짐 (Town05 주행 구간은 영향 없음)",
+      "남은 인지 약점: 아주 작은 신호(<12px) 재현율 0.53, 비 오는 밤 차량 0.64",
+      "검증 규모: 빨간불 정지 52번에 위반 0 → 말할 수 있는 위반율 상한 약 5.8%. 차량·보행자를 넣은 뒤 시드와 시나리오를 늘려 최종 검증 예정"
     ],
     "foot.stack": "CARLA 0.9.16 · YOLO11n · PyTorch · pandas/Parquet · DVC · OpenCV",
     "foot.repo": "GitHub 저장소"
@@ -108,6 +110,7 @@ window.I18N = {
     "stat.redrun": "red-light violations (4 weathers × 180 s)",
     "stat.recall": "red recall in an unseen town, from data changes only",
     "stat.color": "color accuracy of the chosen light",
+    "stat.safety": "risky moments found by comparison → fixed and re-verified on the same 40 runs",
     "stat.infer": "inference (median, RTX 4060 Ti)",
     "demo.title": "Driving demo — unseen town Town05",
     "demo.sub": "Boxes are drawn by the browser from the recorded model output. The 2D map stays readable at night and in rain. Click the timeline to jump.",
@@ -191,11 +194,12 @@ window.I18N = {
     "res.k": ["cause", "measured", "fix"],
     "lim.title": "Limits and next steps",
     "lim.items": [
+      "Car following in progress — planning (safe speed + time gap) and camera distance (ground-line, 0.3–0.45 m median error within 20 m) are done; ground truth vs model comparison in traffic is running. The current demo videos have no other traffic",
       "No pedestrians yet — next class to add through the same pipeline (v4)",
-      "No car following — hence no other traffic in the demo; vehicle detection is validated on test metrics only",
       "Snow not validated — CARLA 0.9.16 has no snow; to be covered with real data (sim-to-real)",
-      "Remaining weak spots: tiny lights (<12 px) recall 0.53, vehicles in rain at night 0.64",
-      "Next: ground-truth vs model perception driving comparison (many seeds), sim-to-real on real road data"
+      "Camera distance assumes a flat road — errors grow beyond 30 m on hilly Town03 (the Town05 driving area is unaffected)",
+      "Remaining perception weak spots: tiny lights (<12 px) recall 0.53, vehicles in rain at night 0.64",
+      "Validation scale: 0 violations in 52 red stops only bounds the rate below ~5.8%. Final validation with more seeds and scenarios after adding traffic and pedestrians"
     ],
     "foot.stack": "CARLA 0.9.16 · YOLO11n · PyTorch · pandas/Parquet · DVC · OpenCV",
     "foot.repo": "GitHub repository"

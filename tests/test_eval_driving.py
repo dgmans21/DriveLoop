@@ -88,6 +88,59 @@ def test_brake_need_is_required_decel_when_stopping_starts():
     assert summarize_run(log, DT, stop_margin=2.0)["brake_need_max"] == 3.2
 
 
+def test_lead_metrics_time_gap_ttc_and_gap():
+    from driveloop.eval.driving import lead_metrics
+    log = pd.DataFrame({"speed": [10.0, 10.0, 8.0, 1.0],
+                        "lead_dist": [30.0, 20.0, 12.0, 5.0],
+                        "lead_speed": [5.0, 5.0, 8.0, 0.0]})
+    m = lead_metrics(log, dt=0.05)
+    assert m["min_time_gap"] == 1.5           # 12 / 8 (속도 2 m/s 이하인 마지막 줄은 제외)
+    assert m["min_ttc"] == 4.0                # 접근 중인 줄: 30/5=6, 20/5=4, 5/1=5 → 4 (같은 속도인 셋째 줄은 제외)
+    assert m["min_lead_gap"] == 5.0
+
+
+def test_lead_metrics_without_lead_columns_are_none():
+    from driveloop.eval.driving import lead_metrics
+    m = lead_metrics(pd.DataFrame({"speed": [5.0, 5.0]}), dt=0.05)
+    assert m["min_time_gap"] is None and m["min_ttc"] is None and m["hard_brakes"] == 0
+
+
+def test_crossing_car_is_not_a_following_lead():
+    from driveloop.eval.driving import lead_metrics
+    n = 60
+    log = pd.DataFrame({"speed": [8.0] * n, "lead_dist": [None] * n, "lead_speed": [None] * n,
+                        "lead_id": [None] * n})
+    log.loc[10:30, ["lead_dist", "lead_speed", "lead_id"]] = [20.0, 6.0, 1]   # 1초 이상 따라감
+    log.loc[45:46, ["lead_dist", "lead_speed", "lead_id"]] = [3.0, 0.0, 2]    # 0.1초 가로지름
+    m = lead_metrics(log.astype({"lead_dist": float, "lead_speed": float}), dt=0.05)
+    assert m["crossing_events"] == 1
+    assert m["min_ttc"] == 10.0                   # 20 / (8 - 6): 가로지른 차(3m)는 TTC에서 빠짐
+
+
+def test_lead_perception_error_miss_and_phantom():
+    from driveloop.eval.driving import lead_perception_metrics
+    nan = float("nan")
+    log = pd.DataFrame({"lead_dist":   [20.0, 20.0, 15.0, nan, nan],
+                        "p_lead_dist": [21.0, 19.0, nan, 10.0, nan]})
+    m = lead_perception_metrics(log)
+    assert m["lead_err_med"] == 1.0
+    assert m["lead_miss_rate"] == round(1 / 3, 3)      # 정답 앞차 3 tick 중 1 tick 못 봄
+    assert m["lead_phantom_rate"] == round(1 / 3, 3)   # 본 앞차 3 tick 중 1 tick은 없는 차
+
+
+def test_near_standstill_stop_is_not_hard_brake():
+    from driveloop.eval.driving import lead_metrics
+    speed = [1.0] * 10 + [0.0] * 10                # 1 m/s에서 한 번에 정지
+    assert lead_metrics(pd.DataFrame({"speed": speed}), dt=0.05)["hard_brakes"] == 0
+
+
+def test_hard_brake_counts_events_not_ticks():
+    from driveloop.eval.driving import lead_metrics
+    speed = [8.0] * 10 + [8.0 - 0.3 * i for i in range(1, 21)] + [2.0] * 10   # 0.05초마다 0.3 m/s → 6 m/s²
+    m = lead_metrics(pd.DataFrame({"speed": speed}), dt=0.05)
+    assert m["hard_brakes"] == 1
+
+
 def test_stop_without_green_has_no_delay():
     log = make_log([("STOPPED", "RED", 2.0, 0), ("STOPPED", "RED", 2.0, 0)])
     assert stops(log)[0]["start_delay"] is None

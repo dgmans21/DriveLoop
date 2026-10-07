@@ -5,6 +5,7 @@ from collections import defaultdict
 
 import carla
 
+from driveloop.perception.lead import Lead, Obstacle, find_lead
 from driveloop.perception.types import PerceptionOutput, TLState
 from driveloop.planning.route import RoutePlanner
 
@@ -26,7 +27,10 @@ class GroundTruthPerception:
     """
 
     def __init__(self, world: carla.World, ego: carla.Vehicle, route: RoutePlanner,
-                 lookahead: float) -> None:
+                 lookahead: float, lead_lookahead: float = 50.0, lane_half_width: float = 1.75) -> None:
+        self._world = world
+        self._lead_lookahead = lead_lookahead
+        self._lane_half_width = lane_half_width
         self._ego = ego
         self._route = route
         self._lookahead = lookahead
@@ -41,11 +45,25 @@ class GroundTruthPerception:
         return len({tl.id for items in self._stops.values() for tl, _ in items})
 
     def perceive(self, image=None) -> PerceptionOutput:
+        lead = self.lead_vehicle()
+        ld, ls, lid = (lead.distance, lead.speed, lead.id) if lead else (None, None, None)
         nearest = self.nearest_light()
         if nearest is None:
-            return PerceptionOutput()
+            return PerceptionOutput(lead_distance=ld, lead_speed=ls, lead_id=lid)
         tl, dist = nearest
-        return PerceptionOutput(_TL_STATE.get(tl.get_state(), TLState.UNKNOWN), dist)
+        return PerceptionOutput(_TL_STATE.get(tl.get_state(), TLState.UNKNOWN), dist, ld, ls, lid)
+
+    def lead_vehicle(self) -> Lead | None:
+        """정답값 앞차: 시뮬레이터의 모든 차량 위치·속도 → 내 경로 위 가장 가까운 차 (perception/lead.py)."""
+        obstacles = []
+        for v in self._world.get_actors().filter("vehicle.*"):
+            if v.id == self._ego.id:
+                continue
+            loc, vel = v.get_location(), v.get_velocity()
+            obstacles.append(Obstacle(v.id, loc.x, loc.y, vel.x, vel.y, v.bounding_box.extent.x))
+        loc = self._ego.get_location()
+        return find_lead(self._route.points_xy(), (loc.x, loc.y), self._front_offset, obstacles,
+                         self._lane_half_width, self._lead_lookahead)
 
     def nearest_light(self) -> tuple[carla.TrafficLight, float] | None:
         """지도 정보만으로 '내 차선을 통제하는 가장 가까운 신호등'과 정지선까지 거리 (상태는 읽지 않음).

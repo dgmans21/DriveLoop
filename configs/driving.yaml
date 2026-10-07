@@ -11,7 +11,19 @@ comfort_decel: 2.0       # m/s², 정지선 접근 시 목표 감속도 (서서�
 max_stop_decel: 4.0      # m/s², 노란불: 이 감속도 이내로 설 수 있으면 정지, 아니면 통과
 stop_margin: 2.0         # m, 정지선 앞에 남겨둘 여유 거리
 dilemma_memory_steps: 20 # tick, 초록을 본 지 이만큼(20 = 1초) 안에 '설 수 없는 거리의 빨강'이 보이면 노란불 딜레마로 처리
-tl_lookahead: 45.0       # m, 전방 신호등 탐색 거리
+tl_lookahead: 45.0
+lead_lookahead: 50.0     # m, 앞차 탐색 거리 (경로를 따라 잰 범퍼 간격)
+lane_half_width: 1.75    # m, 경로 중심선에서 이 안에 차 중심이 있으면 내 차선 (차로 폭 3.5m의 절반)
+
+# 앞차 따라가기 (planning/acc.py): 목표 속도 = min(신호 판단, 커브 제한, ACC 상한)
+acc_time_gap: 1.8        # s, 원하는 차간 시간 (사람 운전 권장 약 2초)
+acc_standstill_gap: 5.0  # m, 정지했을 때 앞차와의 간격
+acc_tau: 1.5             # s, 간격 오차를 줄이는 시간 상수 (작을수록 급하게 따라붙음)
+
+# 카메라로 앞차 거리 (perception/mono_distance.py, 바닥선 방법 Z = f·H/(y2 − cy))
+# H는 설치 높이(1.7m, 차량 원점 기준)가 아니라 자동 라벨 거리로 보정한 값 (scripts/33_eval_lead_distance.py):
+# 1.7을 쓰면 0~30m에서 약 +0.8~0.9m 멀게 봄(위험한 쪽), 보정값은 0~20m 오차 중앙값 0.3~0.45m
+mono_cam_height: 1.556       # m, 전방 신호등 탐색 거리
 
 # 커브 감속: 곡률 κ 지점 속도 상한 sqrt(curve_lat_accel / κ), comfort_decel로 미리 감속
 curve_lat_accel: 2.5     # m/s², 허용 횡가속도 (반경 10m 코너 ≈ 18km/h)

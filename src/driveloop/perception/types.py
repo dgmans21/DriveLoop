@@ -22,7 +22,9 @@ class TLState(str, Enum):
 class PerceptionOutput:
     tl_state: TLState | None = None      # None = 전방 경로에 신호등 없음
     stop_distance: float | None = None   # m, 앞 범퍼 ~ 정지선 (음수면 이미 넘음)
-    # TODO(1단계 다음): lead_distance / lead_speed (전방 장애물·차량)
+    lead_distance: float | None = None   # m, 내 경로 위 앞차와 범퍼 사이 간격 (None = 앞차 없음)
+    lead_speed: float | None = None      # m/s, 앞차 속도의 경로 방향 성분
+    lead_id: int | None = None           # 앞차 식별자 (같은 차를 계속 따라가는지 / 잠깐 가로지른 차인지 구분용)
 
 
 class Perception(Protocol):

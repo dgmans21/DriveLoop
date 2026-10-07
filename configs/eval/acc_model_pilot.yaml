@@ -1,0 +1,12 @@
+# B-5 파일럿: 모델 인지(차량 검출 + 카메라 거리 + 추적)로 앞차 따라가기 — 같은 시드의 정답값 인지와 나란히
+# 확인할 것: 충돌, 카메라 앞차 거리 vs 정답값 앞차 거리, 오검출로 인한 급제동
+name: acc_model_pilot
+map: Town05
+conditions:
+  - [clear, noon]
+conditions_source: configs/collection/v3.yaml
+seeds: [1, 2, 3]
+seconds: 120
+perceptions: [gt, model]
+traffic: 50
+output_root: outputs/compare

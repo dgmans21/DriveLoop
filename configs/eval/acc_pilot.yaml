@@ -1,0 +1,12 @@
+# B-3 파일럿: NPC 차량이 있는 도로에서 앞차 따라가기(ACC) 동작 확인 — 정답값 인지만
+# (모델 인지의 앞차 연결은 B-5. 여기서는 판단 로직이 실제 차량 물리·교통에서 추돌 없이 도는지 본다)
+name: acc_pilot2               # acc_pilot = 앞차 id 로그 추가 전 첫 파일럿 (지우지 않고 보존)
+map: Town05
+conditions:
+  - [clear, noon]
+conditions_source: configs/collection/v3.yaml
+seeds: [1, 2, 3]
+seconds: 120
+perceptions: [gt]
+traffic: 50                     # Town05 스폰 지점 대비 적당히 붐비는 수준 (수집 v2의 high와 같음)
+output_root: outputs/compare

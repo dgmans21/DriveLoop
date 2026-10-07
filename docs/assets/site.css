@@ -81,6 +81,7 @@ video, canvas { max-width: 100%; }
 .hero-video video { width: 100%; border-radius: var(--radius); display: block; background: #000; }
 .hero-video figcaption { color: var(--ink-3); font-size: 13px; margin-top: 6px; }
 .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.stats .stat:last-child:nth-child(odd) { grid-column: 1 / -1; }   /* 홀수 개면 마지막 칸을 가로로 */
 .stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
 .stat b { display: block; font-size: 26px; line-height: 1.2; font-variant-numeric: tabular-nums; }
 .stat span { color: var(--ink-2); font-size: 13px; }

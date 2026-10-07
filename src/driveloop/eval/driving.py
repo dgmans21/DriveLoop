@@ -13,6 +13,12 @@ gt_* 는 정답값 기준 '내 신호등'의 상태 / 앞 범퍼~정지선 거�
 - 불필요한 감속: 정답 신호가 GREEN(또는 없음)인데 STOPPING에 들어간 횟수
 - 주의 감속 시간(caution_s): CAUTION(색을 몰라 속도 제한)의 제한 속도 sqrt(2·comfort_decel·gap)가
   순항 속도보다 낮았던 시간 (= 안전장치가 실제로 속도를 깎은 시간. 커브 감속은 제외)
+앞차 지표 (B단계, 로그에 정답값 lead_dist / lead_speed 열이 있을 때만):
+- 따라가는 앞차만 (lead_id가 1초 이상 같은 차). 잠깐 경로를 가로지르는 차는 crossing_events로 따로 센다
+- 최소 차간 시간(min_time_gap): 앞차 간격 / 내 속도 (내 속도 > 2 m/s일 때). 사람 운전 권장 ~2초, 1초 미만은 위험
+- 최소 TTC(min_ttc): 앞차 간격 / 접근 속도 (접근 중일 때만). 충돌까지 남은 시간, 2초 미만이면 위험 신호
+- 최소 정지 간격(min_lead_gap): 앞차와 가장 가까웠던 범퍼 간격
+- 급제동(hard_brakes): 실제 감속도(속도 변화, 0.25초 평활)가 4 m/s²를 넘은 횟수 (신호·앞차 원인 구분 없이)
 - 제동 강도(brake_need_max): STOPPING에 들어간 순간 정지 지점(정지선 − stop_margin)까지 서는 데 필요한 감속도
   v²/(2·gap)의 최댓값. 늦게 알아챌수록 커진다 (판단의 max_stop_decel = 4 m/s²가 '설 수 있음'의 한계)
 """
@@ -98,6 +104,61 @@ def brake_needs(log: pd.DataFrame, stop_margin: float) -> list[float]:
     return out
 
 
+def lead_metrics(log: pd.DataFrame, dt: float, hard_decel: float = 4.0, min_follow_s: float = 1.0,
+                 hard_min_speed: float = 3.0) -> dict:
+    """앞차 관련 지표. 앞차 열이 없거나 앞차가 한 번도 없으면 None."""
+    out = {"min_time_gap": None, "min_ttc": None, "min_lead_gap": None, "crossing_events": 0}
+    if "lead_dist" in log and log.lead_dist.notna().any():
+        has = log.lead_dist.notna()
+        if "lead_id" in log:
+            # 같은 차가 min_follow_s 이상 계속 앞에 있어야 '따라가는 앞차' — 교차로를 가로지르는 차는
+            # 잠깐(0.05~0.3초) 경로 위에 나타났다 사라져 TTC가 비정상적으로 작게 나온다 (acc_pilot에서 확인)
+            run_id = (log.lead_id != log.lead_id.shift()).cumsum()
+            run_len = log.groupby(run_id).lead_id.transform("size")
+            follow = has & (run_len >= round(min_follow_s / dt))
+            out["crossing_events"] = int((has & ~follow & (run_id != run_id.shift())).sum())
+            has = follow
+        moving = has & (log.speed > 2.0)
+        if moving.any():
+            out["min_time_gap"] = round(float((log.lead_dist[moving] / log.speed[moving]).min()), 2)
+        closing = has & ((log.speed - log.lead_speed) > 0.5)
+        if closing.any():
+            out["min_ttc"] = round(float((log.lead_dist[closing] / (log.speed - log.lead_speed)[closing]).min()), 2)
+        if has.any():
+            out["min_lead_gap"] = round(float(log.lead_dist[has].min()), 2)
+    # 실제 감속도: 0.25초 이동 평균 속도의 변화율. 거의 선 상태(< hard_min_speed)에서 0으로 떨어지는 순간은
+    # 감속도가 크게 계산되지만 체감 급제동이 아니다 (acc_pilot: 출발 직후 1 m/s → 0) → 제외
+    k = max(1, round(0.25 / dt))
+    v = log.speed.rolling(k, min_periods=1).mean()
+    hard = ((-(v.diff() / dt)) > hard_decel) & (v.shift() > hard_min_speed)
+    out["hard_brakes"] = int((hard & ~hard.shift(fill_value=False)).sum())
+    return out
+
+
+def lead_perception_metrics(log: pd.DataFrame, near: float = 30.0) -> dict:
+    """판단에 쓴 앞차(p_lead_*) vs 정답값 앞차(lead_*) — 모델 인지 실행에서만 의미가 있다.
+
+    - 거리 오차: 둘 다 앞차를 본 tick의 |추정 − 정답| 중앙값·90%
+    - 놓침: 정답값 앞차가 near m 안에 있는데 인지가 앞차 없음 (위험한 쪽)
+    - 헛봄: 인지는 near m 안에 앞차가 있다는데 정답값은 없음 (불필요한 감속 쪽)
+    """
+    out = {"lead_err_med": None, "lead_err_p90": None, "lead_miss_rate": None, "lead_phantom_rate": None}
+    if "p_lead_dist" not in log or "lead_dist" not in log:
+        return out
+    both = log.lead_dist.notna() & log.p_lead_dist.notna()
+    if both.any():
+        err = (log.p_lead_dist[both] - log.lead_dist[both]).abs()
+        out["lead_err_med"] = round(float(err.median()), 2)
+        out["lead_err_p90"] = round(float(err.quantile(0.9)), 2)
+    gt_near = log.lead_dist.notna() & (log.lead_dist <= near)
+    if gt_near.any():
+        out["lead_miss_rate"] = round(float((gt_near & log.p_lead_dist.isna()).sum() / gt_near.sum()), 3)
+    p_near = log.p_lead_dist.notna() & (log.p_lead_dist <= near)
+    if p_near.any():
+        out["lead_phantom_rate"] = round(float((p_near & log.lead_dist.isna()).sum() / p_near.sum()), 3)
+    return out
+
+
 def summarize_run(log: pd.DataFrame, dt: float, stop_margin: float, comfort_decel: float = 2.0,
                   cruise_speed: float = 30 / 3.6) -> dict:
     cr = crossings(log)
@@ -125,6 +186,8 @@ def summarize_run(log: pd.DataFrame, dt: float, stop_margin: float, comfort_dece
         "stop_over_line": sum(p < 0 for p in pos),                 # 정지선을 넘어서 섰음
         "start_delay_mean": round(sum(delays) / len(delays), 2) if delays else None,
         "decision_agree": round(float((seen.tl_state == seen.gt_state).mean()), 3) if len(seen) else None,
+        **lead_metrics(log, dt),
+        **lead_perception_metrics(log),
     }
 
 

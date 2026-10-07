@@ -55,6 +55,12 @@ class DrivingConfig:
     stop_margin: float = 2.0
     dilemma_memory_steps: int = 20
     tl_lookahead: float = 45.0
+    lead_lookahead: float = 50.0
+    lane_half_width: float = 1.75
+    acc_time_gap: float = 1.8
+    acc_standstill_gap: float = 5.0
+    acc_tau: float = 1.5
+    mono_cam_height: float = 1.556
     curve_lat_accel: float = 2.5
     route_spacing: float = 2.0
     route_horizon: float = 60.0

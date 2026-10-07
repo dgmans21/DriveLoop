@@ -36,12 +36,14 @@
     const redRun = best.reduce((a, c) => a + c.red_run, 0);
     const color = best.length ? Math.min(...best.map((c) => c.color)) : 1;
     const infer = best.length ? (best.reduce((a, c) => a + c.infer_ms, 0) / best.length).toFixed(0) : "12";
-    $("#hero-stats").innerHTML = [
+    const stats = [
       [String(redRun), t("stat.redrun")],
       ["+5.1%p", t("stat.recall")],
       [`${(color * 100).toFixed(1)}%`, t("stat.color")],
       [`${infer} ms`, t("stat.infer")],
-    ].map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("");
+    ];
+    if (compare && compare.baseline) stats.splice(3, 0, ["2 → 0", t("stat.safety")]);
+    $("#hero-stats").innerHTML = stats.map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("");
 
     $("#flow").innerHTML = t("pipe.steps").map(([h, d]) => `<li><b>${h}</b><span>${d}</span></li>`).join("");
 

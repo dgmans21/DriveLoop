@@ -119,7 +119,9 @@ def main() -> None:
             def make_model(route, _gt):
                 from driveloop.perception.model import ModelPerception
                 return ModelPerception(world, ego, route, front_cam, front.width, front.height, front.fov,
-                                       args.weights, drv.tl_lookahead, conf=args.conf)
+                                       args.weights, drv.tl_lookahead, conf=args.conf,
+                                       lead_lookahead=drv.lead_lookahead, lane_half_width=drv.lane_half_width,
+                                       cam_height=drv.mono_cam_height, dt=dt)
             agent = DrivingAgent(world, ego, drv, rng, make_model if args.perception == "model" else None)
             perception = agent.perception
             print(f"[start] perception={args.perception} map={cfg.map} spawn={idx}"
