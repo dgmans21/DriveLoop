@@ -20,22 +20,16 @@ NPC 차량은 없다: 판단에 앞차 거리 유지가 아직 없어서 (Percep
 import argparse
 import csv
 import json
-import math
 import random
 from datetime import datetime
 from pathlib import Path
 
 import carla
 
+from driveloop.agent import DrivingAgent
 from driveloop.config import CameraConfig, PROJECT_ROOT, load_driving_config, load_sim_config
-from driveloop.control.lateral import pick_lookahead_point, pure_pursuit_steer, rear_axle
-from driveloop.control.pid import LongitudinalController
 from driveloop.data.collection_config import CaptureCamera, load_collection_config
-from driveloop.perception.ground_truth import GroundTruthPerception
-from driveloop.planning.behavior import TrafficLightBehavior
-from driveloop.planning.route import RoutePlanner
-from driveloop.planning.speed_limit import curve_speed_limit
-from driveloop.sim.client import ActorPool, connect, spawn_ego, speed_mps, synchronous_mode
+from driveloop.sim.client import ActorPool, connect, spawn_ego, synchronous_mode
 from driveloop.sim.sensors import attach_rgb_camera, get_frame, image_to_rgb
 from driveloop.sim.weather import apply_weather
 from driveloop.viz.hud import Display
@@ -122,21 +116,16 @@ def main() -> None:
             pool.add(chase_cam)
             world.tick()
 
-            max_steer = math.radians(ego.get_physics_control().wheels[0].max_steer_angle)
-            route = RoutePlanner(world.get_map(), ego.get_location(), drv.route_spacing, drv.route_horizon, rng)
-            gt = GroundTruthPerception(world, ego, route, drv.tl_lookahead)   # model 모드에선 비교 기록용
-            if args.perception == "model":
+            def make_model(route, _gt):
                 from driveloop.perception.model import ModelPerception
-                perception = ModelPerception(world, ego, route, front_cam, front.width, front.height, front.fov,
-                                             args.weights, drv.tl_lookahead, conf=args.conf)
-            else:
-                perception = gt
-            behavior = TrafficLightBehavior(drv)
-            longitudinal = LongitudinalController(drv)
+                return ModelPerception(world, ego, route, front_cam, front.width, front.height, front.fov,
+                                       args.weights, drv.tl_lookahead, conf=args.conf)
+            agent = DrivingAgent(world, ego, drv, rng, make_model if args.perception == "model" else None)
+            perception = agent.perception
             print(f"[start] perception={args.perception} map={cfg.map} spawn={idx}"
                   + (f" weights={args.weights}" if args.perception == "model" else ""))
 
-            prev_state = behavior.state
+            prev_state = agent.behavior.state
             t0 = world.get_snapshot().timestamp.elapsed_seconds
             while True:
                 if display is not None and display.poll_quit():
@@ -148,26 +137,9 @@ def main() -> None:
                 if args.seconds is not None and sim_t >= args.seconds:
                     break
 
-                tf = ego.get_transform()
-                speed = speed_mps(ego)
-                route.update(tf.location)
-
-                # 인지 → 판단 → 제어 (판단·제어는 1-3과 동일)
-                p = perception.perceive(front_img)
-                gt_p = gt.perceive() if args.perception == "model" else p
-                decision = behavior.step(p, speed)
-                points = route.points_xy()
-                curve_limit = curve_speed_limit(points, drv.curve_lat_accel, drv.comfort_decel, behavior.cruise_speed)
-                target_speed = min(decision.target_speed, curve_limit)
-                throttle, brake = longitudinal.step(target_speed, speed, dt)
-                if len(points) >= 2:
-                    ego_xy = (tf.location.x, tf.location.y)
-                    target = pick_lookahead_point(points, rear_axle(ego_xy, tf.rotation.yaw, drv.wheelbase),
-                                                  drv.lookahead_min + drv.lookahead_gain * speed)
-                    steer = pure_pursuit_steer(ego_xy, tf.rotation.yaw, target, drv.wheelbase, max_steer)
-                else:
-                    steer, throttle, brake = 0.0, 0.0, 1.0
-                ego.apply_control(carla.VehicleControl(throttle=throttle, steer=steer, brake=brake))
+                # 인지 → 판단 → 제어 (판단·제어는 1-3과 동일, agent.py)
+                r = agent.step(front_img, dt)
+                p, gt_p, decision, target_speed, speed, tf = r.p, r.gt, r.decision, r.target_speed, r.speed, r.transform
 
                 dbg = getattr(perception, "debug", None)
                 tl_val = p.tl_state.value if p.tl_state else ""

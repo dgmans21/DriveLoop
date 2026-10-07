@@ -36,19 +36,28 @@ class ModelDebug:
     infer_ms: float = 0.0
 
 
+_MODELS: dict[str, object] = {}
+
+
+def load_yolo(weights: str):
+    """같은 프로세스에서 여러 번 주행할 때(비교 실험) 모델을 한 번만 올린다."""
+    if weights not in _MODELS:
+        from ultralytics import YOLO  # 무거운 import는 사용할 때만
+        _MODELS[weights] = YOLO(weights)
+    return _MODELS[weights]
+
+
 class ModelPerception:
     def __init__(self, world: carla.World, ego: carla.Vehicle, route: RoutePlanner, camera: carla.Sensor,
                  width: int, height: int, fov: float, weights: str, lookahead: float,
                  conf: float = 0.10, imgsz: int = 1280, voter: TemporalVoter | None = None) -> None:
-        from ultralytics import YOLO  # 무거운 import는 사용할 때만
-
         self._map = GroundTruthPerception(world, ego, route, lookahead)
         self._camera = camera
         self._W, self._H = width, height
         self._K = np.array(camera_intrinsics(width, height, fov))
         self._heads = {tl.id: [bbox_to_dict(b) for b in tl.get_light_boxes()]
                        for tl in world.get_actors().filter("traffic.traffic_light")}
-        self._model = YOLO(weights)
+        self._model = load_yolo(weights)
         self._names = self._model.names
         self._conf, self._imgsz = conf, imgsz
         self._voter = voter or TemporalVoter()

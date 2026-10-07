@@ -8,6 +8,7 @@
        docs/assets/drive/index.json   조건 목록 + 요약 수치
        docs/assets/maps/<맵>.json      2D 지도용 차선 중심선 (OpenDRIVE를 서버 없이 파싱)
        docs/assets/highlight.mp4       첫 화면 하이라이트 (오버레이가 그려진 녹화에서 자름)
+       docs/assets/compare.json        3단계 정답값 vs 모델 주행 비교 (51_compare_report.py 결과)
 웹 용량: 전방 960px / 3인칭 480px 로 다시 압축 (git·Pages에 올릴 크기)
 """
 import argparse
@@ -126,6 +127,7 @@ def main() -> None:
     ap.add_argument("--web-root", default=str(PROJECT_ROOT / "outputs" / "web"))
     ap.add_argument("--highlight", default="clear_noon:122:137", help="조건:시작초:끝초 (오버레이 녹화에서 자름)")
     ap.add_argument("--skip-video", action="store_true", help="JSON만 갱신 (영상 재압축 생략)")
+    ap.add_argument("--compare", default="compare_v1", help="outputs/compare/<이름>/summary.json 을 웹에 넣는다")
     args = ap.parse_args()
 
     runs = latest_runs(Path(args.web_root))
@@ -168,6 +170,19 @@ def main() -> None:
         print(f"[site] {cond:12} ← {run.name}  {index[-1]}")
 
     (ASSETS / "drive" / "index.json").write_text(json.dumps(index, ensure_ascii=False, indent=1), encoding="utf-8")
+
+    # 3단계 비교 (51_compare_report.py의 summary.json) → 웹에 필요한 부분만
+    cmp_src = PROJECT_ROOT / "outputs" / "compare" / args.compare / "summary.json"
+    if cmp_src.exists():
+        s = json.loads(cmp_src.read_text(encoding="utf-8"))
+        keep = ["condition", "perception", "runs_n", "red_violations", "stops", "proper_stops", "false_stops",
+                "false_brakes", "stop_over_line", "stop_err_mean", "start_delay_mean", "decision_agree", "collisions"]
+        web = {k: s[k] for k in ("name", "map", "seconds", "seeds", "runs", "total")}
+        web["by_condition"] = [{k: r[k] for k in keep} for r in s["by_condition"]]
+        (ASSETS / "compare.json").write_text(json.dumps(web, ensure_ascii=False, indent=1), encoding="utf-8")
+        print(f"[site] compare ← {cmp_src}")
+    else:
+        print(f"[site] 비교 결과 없음: {cmp_src} (51_compare_report.py 실행)")
 
     if not args.skip_video and args.highlight:
         cond, a, b = args.highlight.split(":")

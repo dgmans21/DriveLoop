@@ -55,6 +55,39 @@
       `<article class="card"><h3>${h}</h3><dl><dt>${k[0]}</dt><dd>${a}</dd><dt>${k[1]}</dt><dd>${b}</dd><dt>${k[2]}</dt><dd>${c}</dd></dl></article>`).join("");
 
     $("#limits-list").innerHTML = t("lim.items").map((s) => `<li>${s}</li>`).join("");
+    renderCompare();
+  }
+
+  // ---------- 정답값 vs 내 모델 ----------
+  let compare = null;
+  function renderCompare() {
+    const sec = $("#compare");
+    sec.classList.toggle("hidden", !compare);
+    if (!compare) return;
+    const fmt = (k, v) => v == null ? "-" : k === "decision_agree" ? `${(v * 100).toFixed(1)}%`
+      : k === "start_delay_mean" ? v.toFixed(2) : String(v);
+    const tot = compare.total, gt = tot.gt || {}, md = tot.model || {};
+    const cols = t("cmp.cols");
+    $("#cmp-total").innerHTML = `<thead><tr>${cols.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>` +
+      t("cmp.rows").map(([k, label]) => {
+        const hl = k === "proper_stops" ? ` / ${gt.stops}` : "";
+        return `<tr><td>${label}</td><td>${fmt(k, gt[k])}${hl}</td><td class="hl">${fmt(k, md[k])}${k === "proper_stops" ? ` / ${md.stops}` : ""}</td></tr>`;
+      }).join("") + "</tbody>";
+
+    const cc = t("cmp.condCols");
+    $("#cmp-cond").innerHTML = `<thead><tr>${cc.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>` +
+      compare.by_condition.map((r) => `<tr><td>${t("cond." + r.condition)}</td><td>${r.perception === "gt" ? cols[1] : cols[2]}</td>` +
+        `<td>${r.red_violations}</td><td>${r.proper_stops}/${r.stops}</td><td>${r.false_stops}</td>` +
+        `<td>${r.stop_err_mean.toFixed(2)} m</td><td>${r.start_delay_mean.toFixed(2)} s</td>` +
+        `<td>${(r.decision_agree * 100).toFixed(1)}%</td></tr>`).join("") + "</tbody>";
+
+    const n = md.proper_stops || 0;
+    $("#cmp-note").textContent = t("cmp.note").replaceAll("{n}", n).replace("{ub}", n ? (300 / n).toFixed(1) : "-");
+
+    const k = t("cmp.caseK"), sev = t("cmp.sev");
+    $("#cmp-cases").innerHTML = t("cmp.cases").map(([s, h, a, b, c]) =>
+      `<article class="card"><h3>${h}<span class="sev ${s}">${sev[s]}</span></h3><dl><dt>${k[0]}</dt><dd>${a}</dd>` +
+      `<dt>${k[1]}</dt><dd>${b}</dd><dt>${k[2]}</dt><dd>${c}</dd></dl></article>`).join("");
   }
 
   // ---------- 데이터 ----------
@@ -318,6 +351,7 @@
   // ---------- 시작 ----------
   (async () => {
     try { index = await loadJSON("assets/drive/index.json"); } catch { index = []; }
+    try { compare = await loadJSON("assets/compare.json"); } catch { compare = null; }
     if (!index.some((i) => i.id === cond)) cond = index[0] ? index[0].id : cond;
     applyI18n();
     if (index.length) await selectCond(cond);

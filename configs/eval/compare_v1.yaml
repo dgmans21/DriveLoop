@@ -1,0 +1,16 @@
+# 3단계: 정답값 인지(gt) vs 내 모델 인지(model) 주행 비교
+# 같은 조건·같은 시드·같은 신호 주기에서 인지만 바꿔 주행 → 차이 = 인지 차이 (판단·제어는 agent.py로 동일)
+name: compare_v1
+map: Town05                     # 처음 보는 도시 (학습에 안 씀)
+conditions:                     # configs/collection/v3.yaml의 날씨 × 시간대 이름
+  - [clear, noon]
+  - [rain, noon]
+  - [clear, night]
+  - [rain, night]
+conditions_source: configs/collection/v3.yaml
+seeds: [1, 2, 3, 4, 5]          # 시드 = 출발 지점 + 경로 선택
+seconds: 120                    # 한 번 주행 시간 (시뮬레이션 시간)
+perceptions: [gt, model]
+weights: runs/detect/v3_base/weights/best.pt
+conf: 0.10                      # 04_model_drive.py와 같은 주행 임계값
+output_root: outputs/compare

@@ -138,6 +138,12 @@ table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-nu
 th, td { padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
 th:first-child, td:first-child { text-align: left; }
 th { color: var(--ink-2); font-weight: 600; font-size: 13px; }
+.h3 { font-size: 16px; margin: 22px 0 8px; }
+.sev { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; margin-left: 6px; vertical-align: 2px; border: 1px solid currentColor; }
+.sev.high { color: var(--tl-red); }
+.sev.mid { color: var(--tl-yellow); }
+.sev.low { color: var(--ink-3); }
+td.hl { font-weight: 600; }
 .up { color: var(--tl-green); font-weight: 600; }
 .down { color: var(--tl-red); }
 

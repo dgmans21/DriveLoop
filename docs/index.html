@@ -12,6 +12,7 @@
   <a class="brand" href="#">DriveLoop</a>
   <nav>
     <a href="#demo" data-i18n="nav.demo"></a>
+    <a href="#compare" data-i18n="nav.compare"></a>
     <a href="#pipeline" data-i18n="nav.pipeline"></a>
     <a href="#data" data-i18n="nav.data"></a>
     <a href="#results" data-i18n="nav.results"></a>
@@ -73,6 +74,18 @@
       <ul class="legend" id="tl-legend"></ul>
     </div>
     <div class="cond-stats" id="cond-stats"></div>
+  </section>
+
+  <!-- 2+. 정답값 인지 vs 내 모델 인지 -->
+  <section id="compare">
+    <h2 data-i18n="cmp.title"></h2>
+    <p class="sub" data-i18n="cmp.sub"></p>
+    <div class="table-wrap"><table id="cmp-total"></table></div>
+    <h3 class="h3" data-i18n="cmp.byCond"></h3>
+    <div class="table-wrap"><table id="cmp-cond"></table></div>
+    <p class="note" id="cmp-note"></p>
+    <h3 class="h3" data-i18n="cmp.found"></h3>
+    <div class="cards" id="cmp-cases"></div>
   </section>
 
   <!-- 3. 데이터 파이프라인 -->
