@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DriveLoop</title>
+<meta name="description" content="CARLA 시뮬레이터에서 데이터 수집부터 자동 라벨링, 학습, 실제 주행까지 — 자율주행 인지 데이터 파이프라인">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="#">DriveLoop</a>
+  <nav>
+    <a href="#demo" data-i18n="nav.demo"></a>
+    <a href="#pipeline" data-i18n="nav.pipeline"></a>
+    <a href="#data" data-i18n="nav.data"></a>
+    <a href="#results" data-i18n="nav.results"></a>
+    <a href="#limits" data-i18n="nav.limits"></a>
+  </nav>
+  <button id="lang" class="chip" type="button" aria-label="language">EN</button>
+</header>
+
+<main>
+  <!-- 1. 요약 -->
+  <section class="hero">
+    <div class="hero-text">
+      <h1 data-i18n="hero.title"></h1>
+      <p class="lead" data-i18n="hero.lead"></p>
+      <div class="stats" id="hero-stats"></div>
+    </div>
+    <figure class="hero-video">
+      <video src="assets/highlight.mp4" autoplay muted loop playsinline></video>
+      <figcaption data-i18n="hero.caption"></figcaption>
+    </figure>
+  </section>
+
+  <!-- 2. 주행 데모 -->
+  <section id="demo">
+    <h2 data-i18n="demo.title"></h2>
+    <p class="sub" data-i18n="demo.sub"></p>
+    <div class="tabs" id="cond-tabs" role="tablist"></div>
+
+    <div class="player">
+      <div class="stage">
+        <div class="video-wrap" id="video-wrap">
+          <video id="front" playsinline muted preload="metadata"></video>
+          <canvas id="overlay"></canvas>
+          <video id="chase" class="inset" playsinline muted preload="metadata"></video>
+          <div class="hud" id="hud"></div>
+        </div>
+        <div class="controls">
+          <button id="play" class="btn" type="button" data-i18n="ctl.play"></button>
+          <span class="time" id="time">0.0 s</span>
+          <label><input type="checkbox" id="t-boxes" checked> <span data-i18n="ctl.boxes"></span></label>
+          <label><input type="checkbox" id="t-expected" checked> <span data-i18n="ctl.expected"></span></label>
+          <label><input type="checkbox" id="t-hud" checked> <span data-i18n="ctl.hud"></span></label>
+          <label><input type="checkbox" id="t-bright"> <span data-i18n="ctl.bright"></span></label>
+        </div>
+      </div>
+      <div class="mapbox">
+        <div class="map-head">
+          <span data-i18n="map.title"></span>
+          <button id="map-mode" class="chip" type="button" data-i18n="map.full"></button>
+        </div>
+        <canvas id="map"></canvas>
+        <ul class="legend" id="map-legend"></ul>
+      </div>
+    </div>
+
+    <div class="timeline">
+      <canvas id="timeline"></canvas>
+      <div class="tip" id="tip" hidden></div>
+      <ul class="legend" id="tl-legend"></ul>
+    </div>
+    <div class="cond-stats" id="cond-stats"></div>
+  </section>
+
+  <!-- 3. 데이터 파이프라인 -->
+  <section id="pipeline">
+    <h2 data-i18n="pipe.title"></h2>
+    <p class="sub" data-i18n="pipe.sub"></p>
+    <ol class="flow" id="flow"></ol>
+  </section>
+
+  <!-- 4. 데이터로 성능 올리기 -->
+  <section id="data">
+    <h2 data-i18n="data.title"></h2>
+    <p class="sub" data-i18n="data.sub"></p>
+    <div class="table-wrap"><table id="data-table"></table></div>
+    <p class="note" data-i18n="data.note"></p>
+  </section>
+
+  <!-- 5. 모델 결과 -->
+  <section id="results">
+    <h2 data-i18n="res.title"></h2>
+    <p class="sub" data-i18n="res.sub"></p>
+    <div class="cards" id="cases"></div>
+  </section>
+
+  <!-- 6. 한계와 다음 단계 -->
+  <section id="limits">
+    <h2 data-i18n="lim.title"></h2>
+    <ul class="limits" id="limits-list"></ul>
+  </section>
+</main>
+
+<footer>
+  <span data-i18n="foot.stack"></span>
+  <a href="https://github.com/" id="repo-link" data-i18n="foot.repo"></a>
+</footer>
+
+<script src="assets/i18n.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

@@ -16,6 +16,11 @@
 /runs/
 # 수집·라벨링 중간 산출물
 *.partial
+# 결과 페이지 빌드 결과물 (scripts/40_build_site.py). 영상은 자주 바뀌므로 main 기록에 쌓지 않고
+# gh-pages 브랜치에만 커밋 1개로 덮어쓴다 (scripts/41_publish_site.ps1)
+/docs/assets/drive/
+/docs/assets/maps/
+/docs/assets/highlight.mp4
 
 # ── 개인 학습 노트 ──
 /notes/

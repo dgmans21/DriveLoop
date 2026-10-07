@@ -1,0 +1,125 @@
+// 한국어 / English. 숫자는 실제 실행 결과 (notes, runs/*/eval/*.json 기준)
+window.I18N = {
+  ko: {
+    "nav.demo": "주행 데모", "nav.pipeline": "데이터 파이프라인", "nav.data": "데이터로 개선", "nav.results": "문제 해결", "nav.limits": "한계",
+    "hero.title": "시뮬레이터 데이터로 학습한 내 모델이 신호등을 보고 운전한다",
+    "hero.lead": "CARLA에서 데이터 수집 → 자동 라벨링 → 품질관리·중복 제거 → 학습 → 실패 분석 → 표적 재수집까지 직접 만든 자율주행 인지 데이터 파이프라인. 주행 판단은 모델이 본 신호 색만으로 한다.",
+    "hero.caption": "학습에 쓰지 않은 Town05 · 빨간불을 보고 정지선 앞 정지 (오버레이: 모델 검출, 흰 테두리 = 지도로 예상한 내 신호 위치)",
+    "stat.redrun": "빨간불 위반 (4개 날씨 × 180초)",
+    "stat.recall": "처음 보는 맵 빨간불 재현율, 데이터만 바꿔서",
+    "stat.color": "고른 신호의 색 정확도",
+    "stat.infer": "추론 시간 (중앙값, RTX 4060 Ti)",
+    "demo.title": "주행 데모 — 처음 보는 맵 Town05",
+    "demo.sub": "영상 위 박스는 녹화된 모델 출력을 브라우저가 그린 것. 2D 지도는 밤·비에도 무슨 일이 일어나는지 또렷하게 보여 준다. 타임라인을 누르면 그 장면으로 이동.",
+    "cond.clear_noon": "맑은 낮", "cond.rain_noon": "비 · 낮", "cond.clear_night": "맑은 밤", "cond.rain_night": "비 · 밤",
+    "ctl.play": "재생", "ctl.pause": "일시정지", "ctl.boxes": "검출 박스", "ctl.expected": "예상 위치", "ctl.hud": "판단 패널", "ctl.bright": "밝게 보기",
+    "map.title": "위에서 본 지도", "map.full": "전체 보기", "map.follow": "따라가기",
+    "lg.road": "차로", "lg.trail": "주행 경로", "lg.ego": "내 차", "lg.stop": "정지선 (실제 신호 색)",
+    "tl.model": "모델 판단", "tl.truth": "실제 신호", "tl.speed": "속도", "tl.target": "목표 속도", "tl.unknown": "판단 보류", "tl.none": "신호 없음",
+    "cs.agree": "판단 일치율", "cs.found": "내 신호 찾음", "cs.color": "색 정확도", "cs.redrun": "빨간불 위반", "cs.stops": "정지 횟수", "cs.infer": "추론 (ms)",
+    "hud.perc": "인지", "hud.light": "신호", "hud.state": "판단", "hud.speed": "속도", "hud.infer": "추론",
+    "pipe.title": "데이터 파이프라인",
+    "pipe.sub": "라벨링 비용 0 — 시뮬레이터 정답값으로 자동 라벨을 만들고, 규칙으로 검증하고, 설정 파일 + 시드 + DVC로 같은 데이터셋을 다시 만들 수 있게 했다.",
+    "pipe.steps": [
+      ["배치 수집", "맵 × 날씨 × 시간 × 교통량 조합을 설정 파일로 정의. 에피소드 ID 기반 시드로 재현"],
+      ["자동 라벨링", "3D 박스 → 2D 투영, 인스턴스 세그멘테이션으로 가림 판정, 신호등 정면 70° 기준"],
+      ["메타데이터 · QC", "Parquet 프레임/객체 테이블, 램프 색 검증, 이상 플래그"],
+      ["중복 제거", "dHash + 이동량으로 신호 대기 중 같은 장면 제거 (약 40% 감소)"],
+      ["분포 리포트", "조건·크기·클래스별 부족분을 자동으로 찾아 다음 수집 목표로"],
+      ["DVC", "foreach 파이프라인, 바뀐 단계만 재실행, 데이터 버전 고정"],
+      ["학습 · 평가", "YOLO11n 1280px, 학습에 안 쓴 맵(Town05)으로만 최종 채점"]
+    ],
+    "data.title": "데이터로 성능 올리기",
+    "data.sub": "학습 방법은 그대로 두고 데이터만 바꿨다. 같은 시험지(Town05 test 815장)로 비교.",
+    "data.cols": ["", "v2 (학습 맵 2개)", "v3 (+Town02·04)", "변화"],
+    "data.rows": [
+      ["빨간불 재현율", "0.764", "0.815", "+5.1%p"],
+      ["노란불 재현율", "0.733", "0.796", "+6.3%p"],
+      ["초록불 재현율", "0.897", "0.909", "+1.2%p"],
+      ["차량 재현율", "0.730", "0.753", "+2.3%p"],
+      ["먼 빨간불 (12–16px)", "0.62", "0.74", "+12%p"],
+      ["작은 차량 (12–16px)", "0.46", "0.59", "+13%p"]
+    ],
+    "data.note": "신뢰도 0.25 기준, 둘 다 60 epoch. 주행에 쓰는 0.10 기준에선 빨간불 0.822 → 0.856. 대가: 빨간불 오검출 162 → 222.",
+    "res.title": "문제 → 측정 → 해결",
+    "res.sub": "감이 아니라 측정으로 고쳤다.",
+    "res.cases": [
+      ["커브마다 연석 접촉", "Pure Pursuit 주시 거리를 차량 중심에서 재고 너무 길었음", "GPU 없이 자전거 모델 시뮬레이션 → 반경 7m에서 안쪽 1.0m 깎임 확인", "후륜축 기준 + 주시 거리 단축 → 차선 중앙 이탈 p95 1.38m → 0.58m"],
+      ["노란불을 초록으로 0.15초 오인", "다수결 투표에서 GREEN 3표가 이김", "주행 로그를 새 규칙에 다시 넣어 비교", "안전 순서 RED > YELLOW > GREEN → 오인 3 → 0프레임 (대가: 출발 0.1초 지연)"],
+      ["처음 보는 맵에서 빨간불 재현율 하락", "val 0.93 vs test 0.76 — 학습 맵 2개뿐", "임계값 스윕으로 '임계값 문제'와 '데이터 문제' 분리", "맵 2개 추가 수집 → 0.76 → 0.82"],
+      ["학습 중 CUDA OOM", "VRAM은 남았는데 실패 — Windows 커밋 한도", "프로세스별 메모리 측정", "DataLoader worker 8 → 4"]
+    ],
+    "res.k": ["원인", "측정", "해결"],
+    "lim.title": "한계와 다음 단계",
+    "lim.items": [
+      "보행자 미지원 — 같은 파이프라인에 클래스 추가 예정 (v4)",
+      "앞차 따라가기 없음 — 그래서 데모에 다른 차량이 없다. 차량 검출은 테스트 지표로만 검증",
+      "눈 날씨 미검증 — CARLA 0.9.16에 눈이 없음. 실제 데이터(sim-to-real)로 보완 계획",
+      "남은 약점: 아주 작은 신호(<12px) 재현율 0.53, 비 오는 밤 차량 0.64",
+      "다음: 정답값 인지 vs 모델 인지 주행 비교(여러 시드), 실제 도로 데이터로 sim-to-real 측정"
+    ],
+    "foot.stack": "CARLA 0.9.16 · YOLO11n · PyTorch · pandas/Parquet · DVC · OpenCV",
+    "foot.repo": "GitHub 저장소"
+  },
+  en: {
+    "nav.demo": "Demo", "nav.pipeline": "Pipeline", "nav.data": "Data-driven gains", "nav.results": "Fixes", "nav.limits": "Limits",
+    "hero.title": "A car that drives on traffic lights seen by my own model, trained on simulator data",
+    "hero.lead": "An end-to-end perception data pipeline built in CARLA: collection → auto-labeling → QC & dedup → training → failure analysis → targeted re-collection. Driving decisions use only the light color the model sees.",
+    "hero.caption": "Town05, a map never used in training · stops before the line on red (overlay: model detections, white box = where the map says my light should be)",
+    "stat.redrun": "red-light violations (4 weathers × 180 s)",
+    "stat.recall": "red recall on an unseen map, from data changes only",
+    "stat.color": "color accuracy of the chosen light",
+    "stat.infer": "inference (median, RTX 4060 Ti)",
+    "demo.title": "Driving demo — unseen map Town05",
+    "demo.sub": "Boxes are drawn by the browser from the recorded model output. The 2D map stays readable at night and in rain. Click the timeline to jump.",
+    "cond.clear_noon": "Clear · noon", "cond.rain_noon": "Rain · noon", "cond.clear_night": "Clear · night", "cond.rain_night": "Rain · night",
+    "ctl.play": "Play", "ctl.pause": "Pause", "ctl.boxes": "Detections", "ctl.expected": "Expected", "ctl.hud": "Panel", "ctl.bright": "Brighten",
+    "map.title": "Top-down map", "map.full": "Full view", "map.follow": "Follow",
+    "lg.road": "lanes", "lg.trail": "path", "lg.ego": "ego", "lg.stop": "stop line (true light)",
+    "tl.model": "model", "tl.truth": "truth", "tl.speed": "speed", "tl.target": "target", "tl.unknown": "unsure", "tl.none": "no light",
+    "cs.agree": "decision agreement", "cs.found": "my light found", "cs.color": "color accuracy", "cs.redrun": "red violations", "cs.stops": "stops", "cs.infer": "inference (ms)",
+    "hud.perc": "perc", "hud.light": "light", "hud.state": "state", "hud.speed": "speed", "hud.infer": "infer",
+    "pipe.title": "Data pipeline",
+    "pipe.sub": "Zero labeling cost — labels come from simulator ground truth, are validated by rules, and the dataset is reproducible from config + seed + DVC.",
+    "pipe.steps": [
+      ["Batch collection", "map × weather × time × traffic matrix in a config file; seeds derived from episode IDs"],
+      ["Auto-labeling", "3D boxes → 2D projection, occlusion via instance segmentation, 70° facing rule for lights"],
+      ["Metadata · QC", "Parquet frame/object tables, lamp-color checks, anomaly flags"],
+      ["Dedup", "dHash + ego motion drops near-identical frames while waiting at lights (~40% fewer)"],
+      ["Distribution report", "finds under-covered conditions/sizes/classes → next collection targets"],
+      ["DVC", "foreach pipeline, re-runs only changed stages, pinned data versions"],
+      ["Train · evaluate", "YOLO11n at 1280 px, final score only on an unseen map (Town05)"]
+    ],
+    "data.title": "Improving the model with data",
+    "data.sub": "Same training recipe, different data. Compared on the same test set (Town05, 815 images).",
+    "data.cols": ["", "v2 (2 train maps)", "v3 (+Town02·04)", "change"],
+    "data.rows": [
+      ["Red recall", "0.764", "0.815", "+5.1 pt"],
+      ["Yellow recall", "0.733", "0.796", "+6.3 pt"],
+      ["Green recall", "0.897", "0.909", "+1.2 pt"],
+      ["Vehicle recall", "0.730", "0.753", "+2.3 pt"],
+      ["Far red lights (12–16 px)", "0.62", "0.74", "+12 pt"],
+      ["Small vehicles (12–16 px)", "0.46", "0.59", "+13 pt"]
+    ],
+    "data.note": "Confidence 0.25, both 60 epochs. At the 0.10 threshold used for driving, red goes 0.822 → 0.856. Cost: red false positives 162 → 222.",
+    "res.title": "Problem → measure → fix",
+    "res.sub": "Fixed by measurement, not by feel.",
+    "res.cases": [
+      ["Clipping curbs on every turn", "Pure Pursuit lookahead measured from the car center and too long", "GPU-free bicycle-model simulation → 1.0 m corner cutting at 7 m radius", "rear-axle reference + shorter lookahead → lane deviation p95 1.38 m → 0.58 m"],
+      ["Yellow read as green for 0.15 s", "majority vote: 3 GREEN votes won", "replayed the drive log through the new rule", "safety order RED > YELLOW > GREEN → 3 → 0 bad frames (cost: 0.1 s later start)"],
+      ["Red recall drops on an unseen map", "val 0.93 vs test 0.76 — only 2 training maps", "threshold sweep separated 'threshold issue' from 'data issue'", "collected 2 more maps → 0.76 → 0.82"],
+      ["CUDA OOM during training", "VRAM was free — Windows commit limit", "measured per-process memory", "DataLoader workers 8 → 4"]
+    ],
+    "res.k": ["cause", "measured", "fix"],
+    "lim.title": "Limits and next steps",
+    "lim.items": [
+      "No pedestrians yet — next class to add through the same pipeline (v4)",
+      "No car following — hence no other traffic in the demo; vehicle detection is validated on test metrics only",
+      "Snow not validated — CARLA 0.9.16 has no snow; to be covered with real data (sim-to-real)",
+      "Remaining weak spots: tiny lights (<12 px) recall 0.53, vehicles in rain at night 0.64",
+      "Next: ground-truth vs model perception driving comparison (many seeds), sim-to-real on real road data"
+    ],
+    "foot.stack": "CARLA 0.9.16 · YOLO11n · PyTorch · pandas/Parquet · DVC · OpenCV",
+    "foot.repo": "GitHub repository"
+  }
+};
