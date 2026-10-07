@@ -1,0 +1,16 @@
+# 3+: 안전장치(CAUTION, 초록→빨강 딜레마 처리) 적용 후 compare_v1과 같은 조건으로 재비교
+# 바뀐 것은 판단 규칙(planning/behavior.py)뿐 — 맵·날씨·시드·주행 시간·모델·임계값은 v1과 동일
+name: compare_v2
+map: Town05
+conditions:
+  - [clear, noon]
+  - [rain, noon]
+  - [clear, night]
+  - [rain, night]
+conditions_source: configs/collection/v3.yaml
+seeds: [1, 2, 3, 4, 5]
+seconds: 120
+perceptions: [gt, model]
+weights: runs/detect/v3_base/weights/best.pt
+conf: 0.10
+output_root: outputs/compare

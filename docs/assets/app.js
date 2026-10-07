@@ -149,7 +149,6 @@
   }
 
   ["#t-boxes", "#t-expected", "#t-hud"].forEach((s) => $(s).addEventListener("change", drawAll));
-  $("#t-bright").addEventListener("change", (e) => $("#video-wrap").classList.toggle("bright", e.target.checked));
 
   // ---------- 오버레이 ----------
   const ov = $("#overlay");

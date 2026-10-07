@@ -53,6 +53,7 @@ class DrivingConfig:
     comfort_decel: float = 2.0
     max_stop_decel: float = 4.0
     stop_margin: float = 2.0
+    dilemma_memory_steps: int = 20
     tl_lookahead: float = 45.0
     curve_lat_accel: float = 2.5
     route_spacing: float = 2.0

@@ -95,7 +95,6 @@ video, canvas { max-width: 100%; }
 .player { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr); gap: 16px; }
 .video-wrap { position: relative; background: #000; border-radius: var(--radius); overflow: hidden; aspect-ratio: 16 / 9; }
 .video-wrap video#front { width: 100%; height: 100%; display: block; object-fit: contain; }
-.video-wrap.bright video { filter: brightness(1.8) contrast(1.1); }
 #overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .inset {
   position: absolute; right: 10px; bottom: 10px; width: 28%; border: 1px solid rgba(255,255,255,.7);

@@ -11,6 +11,7 @@ gt_* 는 정답값 기준 '내 신호등'의 상태 / 앞 범퍼~정지선 거�
   정지 위치 = gt_dist (판단은 정지선 stop_margin m 앞을 목표로 한다)
 - 출발 지연: 정지 중 정답 신호가 GREEN으로 바뀐 순간 → STOPPED를 벗어난 순간
 - 불필요한 감속: 정답 신호가 GREEN(또는 없음)인데 STOPPING에 들어간 횟수
+- 주의 감속 시간(caution_s): CAUTION(색을 몰라 속도 제한) 상태에서 실제로 순항보다 느리게 가라고 한 시간
 """
 from __future__ import annotations
 
@@ -81,6 +82,9 @@ def summarize_run(log: pd.DataFrame, dt: float, stop_margin: float) -> dict:
         "proper_stops": len(proper),
         "false_stops": len(st) - len(proper),
         "false_brakes": false_brakes(log),
+        "caution_s": round(float(((log.state == "CAUTION") &
+                                  (log.target_speed < log.target_speed.max() - 0.05)).sum() * dt), 2)
+        if "target_speed" in log else 0.0,
         "stop_err_mean": round(sum(abs(p - stop_margin) for p in pos) / len(pos), 2) if pos else None,
         "stop_over_line": sum(p < 0 for p in pos),                 # 정지선을 넘어서 섰음
         "start_delay_mean": round(sum(delays) / len(delays), 2) if delays else None,

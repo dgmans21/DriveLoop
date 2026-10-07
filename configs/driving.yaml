@@ -10,6 +10,7 @@ max_brake: 1.0
 comfort_decel: 2.0       # m/s², 정지선 접근 시 목표 감속도 (서서히 정지)
 max_stop_decel: 4.0      # m/s², 노란불: 이 감속도 이내로 설 수 있으면 정지, 아니면 통과
 stop_margin: 2.0         # m, 정지선 앞에 남겨둘 여유 거리
+dilemma_memory_steps: 20 # tick, 초록을 본 지 이만큼(20 = 1초) 안에 '설 수 없는 거리의 빨강'이 보이면 노란불 딜레마로 처리
 tl_lookahead: 45.0       # m, 전방 신호등 탐색 거리
 
 # 커브 감속: 곡률 κ 지점 속도 상한 sqrt(curve_lat_accel / κ), comfort_decel로 미리 감속

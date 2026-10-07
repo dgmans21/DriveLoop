@@ -66,6 +66,12 @@ def test_summary_is_json_serializable():
     json.dumps(nan_to_none(summarize_run(log, DT, stop_margin=2.0)))
 
 
+def test_caution_time_counts_only_actual_slowdown():
+    log = make_log([("CRUISE", "GREEN", 40.0, 8), ("CAUTION", None, 30.0, 8), ("CAUTION", None, 12.0, 7)])
+    log["target_speed"] = [8.33, 8.33, 6.3]       # 두 번째 CAUTION만 실제로 감속 지시
+    assert summarize_run(log, DT, stop_margin=2.0)["caution_s"] == DT
+
+
 def test_stop_without_green_has_no_delay():
     log = make_log([("STOPPED", "RED", 2.0, 0), ("STOPPED", "RED", 2.0, 0)])
     assert stops(log)[0]["start_delay"] is None

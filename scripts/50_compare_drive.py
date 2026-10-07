@@ -30,8 +30,12 @@ from driveloop.sim.client import ActorPool, connect, spawn_ego, synchronous_mode
 from driveloop.sim.sensors import attach_rgb_camera, get_frame
 from driveloop.sim.weather import apply_weather
 
+# raw_state가 비었을 때 원인 구분용 (compare_v1에서 로그만으로 못 가렸던 것):
+#   n_tl_det = 0          → 모델이 신호등을 아예 못 찾음
+#   n_tl_det > 0, n_exp>0 → 찾았는데 지도 예상 위치와 짝이 안 맞음
+#   n_exp = 0             → 예상 위치가 화면 밖 / 신호가 카메라를 향하지 않음
 LOG_COLS = ["t", "x", "y", "speed", "state", "target_speed", "tl_state", "raw_state", "gt_state", "gt_dist",
-            "gt_tl", "infer_ms"]
+            "gt_tl", "infer_ms", "n_det", "n_tl_det", "n_exp", "assoc_conf"]
 
 
 @dataclass
@@ -110,7 +114,11 @@ def run_one(client, world, sim_cfg, drv, cfg: CompareConfig, seed: int, percepti
                          dbg.raw_state if dbg else None,
                          r.gt.tl_state.value if r.gt.tl_state else None,
                          None if r.gt.stop_distance is None else round(r.gt.stop_distance, 2),
-                         r.gt_tl_id, round(dbg.infer_ms, 1) if dbg else None])
+                         r.gt_tl_id, round(dbg.infer_ms, 1) if dbg else None,
+                         len(dbg.detections) if dbg else None,
+                         sum(d.cls.startswith("tl_") for d in dbg.detections) if dbg else None,
+                         len(dbg.expected) if dbg else None,
+                         round(dbg.association.conf, 2) if dbg and dbg.association else None])
         wall = time.perf_counter() - wall
 
     with open(csv_path.with_suffix(".csv.partial"), "w", newline="", encoding="utf-8") as f:
@@ -163,6 +171,7 @@ def main() -> None:
             s.update({"condition": cid, "seed": seed, "perception": perc})
             (out / f"{stem}.json").write_text(json.dumps(s, ensure_ascii=False, indent=1), encoding="utf-8")
             print(f"[{i}/{len(todo)}] {stem:28} {s['wall_s']:5.0f}s  위반 {s['red_violations']}  "
+                  f"주의감속 {s['caution_s']}s  "
                   f"정지 {s['proper_stops']}/{s['stops']}  오정지 {s['false_stops']}  "
                   f"출발지연 {s['start_delay_mean']}  일치 {s['decision_agree']}  충돌 {s['collisions']}")
 

@@ -36,7 +36,7 @@ from driveloop.viz.hud import Display
 from driveloop.viz.overlay import STATE_RGB, Mp4Recorder, draw_detections, draw_panel, paste_inset, to_web_mp4
 
 WHITE, GRAY, CYAN = (255, 255, 255), (180, 180, 180), (90, 210, 255)
-BEHAVIOR_RGB = {"CRUISE": (80, 230, 110), "STOPPING": (255, 210, 60), "STOPPED": (255, 70, 70),
+BEHAVIOR_RGB = {"CRUISE": (80, 230, 110), "CAUTION": (200, 160, 255), "STOPPING": (255, 210, 60), "STOPPED": (255, 70, 70),
                 "PROCEED_YELLOW": (90, 210, 255)}
 
 

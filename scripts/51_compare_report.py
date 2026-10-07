@@ -38,6 +38,7 @@ def aggregate(runs: pd.DataFrame) -> pd.DataFrame:
     t = g.agg(runs_n=("seed", "size"), red_violations=("red_violations", "sum"), stops=("stops", "sum"),
               proper_stops=("proper_stops", "sum"), false_stops=("false_stops", "sum"),
               false_brakes=("false_brakes", "sum"), stop_over_line=("stop_over_line", "sum"),
+              caution_s=("caution_s", "sum"),
               stop_err_mean=("stop_err_mean", "mean"), start_delay_mean=("start_delay_mean", "mean"),
               decision_agree=("decision_agree", "mean"), collisions=("collisions", "sum"),
               distance_m=("distance_m", "sum")).reset_index()
@@ -87,7 +88,7 @@ def main() -> None:
         raise SystemExit(f"실행 로그 없음: {base / 'runs'}")
     table = aggregate(runs)
     total = runs.groupby("perception")[["red_violations", "stops", "proper_stops", "false_stops", "false_brakes",
-                                         "stop_over_line", "collisions"]].sum()
+                                         "stop_over_line", "caution_s", "collisions"]].sum()
     total["start_delay_mean"] = runs.groupby("perception").start_delay_mean.mean().round(3)
     total["decision_agree"] = runs.groupby("perception").decision_agree.mean().round(3)
     events = model_events(logs, args.events)
