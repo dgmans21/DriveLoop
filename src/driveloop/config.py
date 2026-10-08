@@ -60,6 +60,9 @@ class DrivingConfig:
     acc_time_gap: float = 1.8
     acc_standstill_gap: float = 5.0
     acc_tau: float = 1.5
+    ped_corridor_half: float = 1.5
+    ped_horizon: float = 4.0
+    ped_buffer: float = 1.0
     mono_cam_height: float = 1.556
     curve_lat_accel: float = 2.5
     route_spacing: float = 2.0

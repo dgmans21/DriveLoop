@@ -19,6 +19,7 @@ from driveloop.perception.ground_truth import GroundTruthPerception
 from driveloop.perception.types import PerceptionOutput
 from driveloop.planning.acc import AccOutput, acc_target, smooth_target
 from driveloop.planning.behavior import Decision, TrafficLightBehavior
+from driveloop.planning.pedestrian import PedestrianYield, PedestrianYielder
 from driveloop.planning.route import RoutePlanner
 from driveloop.planning.speed_limit import curve_speed_limit
 from driveloop.sim.client import speed_mps
@@ -34,6 +35,8 @@ class StepResult:
     speed: float
     transform: carla.Transform
     acc: AccOutput               # 앞차 ACC 상한 (앞차 없으면 target_speed=None)
+    ped: PedestrianYield | None = None   # 양보 중인 보행자 (없으면 None)
+    ped_acc: AccOutput | None = None     # 보행자를 '서 있는 앞차'로 본 ACC 상한
 
 
 class DrivingAgent:
@@ -48,6 +51,9 @@ class DrivingAgent:
         self.behavior = TrafficLightBehavior(drv)
         self.longitudinal = LongitudinalController(drv)
         self.max_steer = math.radians(ego.get_physics_control().wheels[0].max_steer_angle)
+        self.yielder = PedestrianYielder(drv.ped_corridor_half, drv.lead_lookahead, drv.ped_horizon, drv.ped_buffer,
+                                         ego_length=2 * ego.bounding_box.extent.x)
+        self._front_offset = ego.bounding_box.extent.x
         self._prev_target: float | None = None
 
     def step(self, image, dt: float) -> StepResult:
@@ -67,16 +73,23 @@ class DrivingAgent:
                          standstill_gap=drv.acc_standstill_gap, tau=drv.acc_tau,
                          comfort_decel=drv.comfort_decel, max_decel=drv.max_stop_decel)
         acc_limit = smooth_target(acc, self._prev_target, drv.comfort_decel, dt)   # 간격 항은 편안한 감속으로만
+        ego_xy = (tf.location.x, tf.location.y)
+        ped = self.yielder.step(points, ego_xy, self._front_offset, p.pedestrians, speed)
+        ped_acc = acc_target(ped.distance if ped else None, 0.0, speed, time_gap=drv.acc_time_gap,
+                             standstill_gap=drv.acc_standstill_gap, tau=drv.acc_tau,
+                             comfort_decel=drv.comfort_decel, max_decel=drv.max_stop_decel)
+        ped_limit = smooth_target(ped_acc, self._prev_target, drv.comfort_decel, dt)
         target_speed = min(decision.target_speed, curve_limit,
-                           acc_limit if acc_limit is not None else float("inf"))
+                           acc_limit if acc_limit is not None else float("inf"),
+                           ped_limit if ped_limit is not None else float("inf"))
         self._prev_target = target_speed
         throttle, brake = self.longitudinal.step(target_speed, speed, dt)
         if len(points) >= 2:
-            ego_xy = (tf.location.x, tf.location.y)
             target = pick_lookahead_point(points, rear_axle(ego_xy, tf.rotation.yaw, drv.wheelbase),
                                           drv.lookahead_min + drv.lookahead_gain * speed)
             steer = pure_pursuit_steer(ego_xy, tf.rotation.yaw, target, drv.wheelbase, self.max_steer)
         else:  # 경로 끝 (막다른 길)
             steer, throttle, brake = 0.0, 0.0, 1.0
         self.ego.apply_control(carla.VehicleControl(throttle=throttle, steer=steer, brake=brake))
-        return StepResult(p, gt_p, nearest[0].id if nearest else None, decision, target_speed, speed, tf, acc)
+        return StepResult(p, gt_p, nearest[0].id if nearest else None, decision, target_speed, speed, tf, acc,
+                          ped, ped_acc)

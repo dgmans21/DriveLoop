@@ -1,4 +1,5 @@
 import pandas as pd
+import pytest
 
 from driveloop.eval.driving import crossings, false_brakes, stops, summarize_run
 
@@ -144,3 +145,40 @@ def test_hard_brake_counts_events_not_ticks():
 def test_stop_without_green_has_no_delay():
     log = make_log([("STOPPED", "RED", 2.0, 0), ("STOPPED", "RED", 2.0, 0)])
     assert stops(log)[0]["start_delay"] is None
+
+
+def _ped_log(speeds, gaps, lats, yields, dt=0.05):
+    import pandas as pd
+    n = len(speeds)
+    return pd.DataFrame({"t": [i * dt for i in range(n)], "speed": speeds, "ped_gap": gaps, "ped_lat": lats,
+                         "yield_id": yields})
+
+
+def test_ped_metrics_stop_wait_and_restart():
+    from driveloop.eval.driving import ped_metrics
+    n = 200
+    speeds = [8.33] * 40 + [max(0.0, 8.33 - 0.1 * k) for k in range(1, 90)] + [0.0] * 40 + [0.1 * k for k in range(31)]
+    speeds = speeds[:n]
+    gaps = [30.0 - 0.2 * i if i < 120 else 6.0 for i in range(n)]
+    lats = [0.0] * 169 + [2.0] * (n - 169)               # 169 tick에 통로를 벗어남
+    yields = [1] * 169 + [None] * (n - 169)
+    m = ped_metrics(_ped_log(speeds, gaps, lats, yields), 0.05)
+    assert m["min_ped_gap"] == pytest.approx(6.0)
+    assert m["yield_s"] == pytest.approx(169 * 0.05)
+    assert m["restart_delay"] == pytest.approx(11 * 0.05)     # 0.1·k > 1.0 → k=11
+    assert m["hard_brakes"] == 0                              # 2 m/s² 감속
+
+
+def test_ped_metrics_no_pedestrian_in_path():
+    from driveloop.eval.driving import ped_metrics
+    m = ped_metrics(_ped_log([8.33] * 50, [20.0] * 50, [3.5] * 50, [None] * 50), 0.05)
+    assert m["min_ped_gap"] is None and m["yield_s"] == 0 and m["min_speed_after_cruise"] == pytest.approx(8.33)
+
+
+def test_ped_metrics_ignore_slowdowns_long_after_passing():
+    from driveloop.eval.driving import ped_metrics
+    n = 200                                                  # 20 tick에 보행자를 지나가고, 150 tick부터 커브 감속
+    speeds = [8.0] * 150 + [4.0] * 50
+    gaps = [2.0 - 0.2 * i for i in range(n)]
+    m = ped_metrics(_ped_log(speeds, gaps, [3.0] * n, [None] * n), 0.05)
+    assert m["min_speed_after_cruise"] == pytest.approx(8.0) and m["hard_brakes"] == 0

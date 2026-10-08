@@ -1,0 +1,14 @@
+# C-2: 보행자 시나리오 — 정답값 인지로 양보 판단 확인 (scripts/53_ped_scenarios.py)
+# 시나리오 정의는 src/driveloop/eval/scenarios.py (PED_SCENARIOS: cross / stop / dartout / sidewalk / curb)
+# 정답값 인지는 날씨의 영향을 받지 않는다 → 날씨 대신 출발 위치(시드)를 늘린다. 날씨별 비교는 모델이 보행자를 보는 C-7에서
+name: ped_scen_v1
+map: Town05
+conditions:
+  - [clear, noon]
+conditions_source: configs/collection/v3.yaml
+scenarios: [cross, stop, dartout, sidewalk, curb]
+seeds: [1, 2, 3]
+seconds: 30
+perceptions: [gt]
+walker_blueprint: walker.pedestrian.0001
+output_root: outputs/compare

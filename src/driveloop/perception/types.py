@@ -8,7 +8,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
+
+if TYPE_CHECKING:
+    from driveloop.perception.lead import Obstacle
 
 
 class TLState(str, Enum):
@@ -25,6 +28,7 @@ class PerceptionOutput:
     lead_distance: float | None = None   # m, 내 경로 위 앞차와 범퍼 사이 간격 (None = 앞차 없음)
     lead_speed: float | None = None      # m/s, 앞차 속도의 경로 방향 성분
     lead_id: int | None = None           # 앞차 식별자 (같은 차를 계속 따라가는지 / 잠깐 가로지른 차인지 구분용)
+    pedestrians: tuple[Obstacle, ...] = ()   # 주변 보행자 (월드 좌표·속도). 양보 여부는 판단(planning/pedestrian.py)이 정한다
 
 
 class Perception(Protocol):

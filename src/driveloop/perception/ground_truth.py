@@ -15,6 +15,9 @@ _TL_STATE = {
     carla.TrafficLightState.Green: TLState.GREEN,
 }
 
+# 정답값 보행자 탐색 반경 (자차 중심에서 직선거리) — 판단은 경로를 따라 다시 잰다
+PEDESTRIAN_RADIUS = 60.0
+
 # 정지선을 이만큼 넘어간 신호등은 '지나간 것'으로 보고 무시
 PASSED_TOLERANCE = 2.0
 
@@ -47,11 +50,24 @@ class GroundTruthPerception:
     def perceive(self, image=None) -> PerceptionOutput:
         lead = self.lead_vehicle()
         ld, ls, lid = (lead.distance, lead.speed, lead.id) if lead else (None, None, None)
+        peds = self.pedestrians()
         nearest = self.nearest_light()
         if nearest is None:
-            return PerceptionOutput(lead_distance=ld, lead_speed=ls, lead_id=lid)
+            return PerceptionOutput(lead_distance=ld, lead_speed=ls, lead_id=lid, pedestrians=peds)
         tl, dist = nearest
-        return PerceptionOutput(_TL_STATE.get(tl.get_state(), TLState.UNKNOWN), dist, ld, ls, lid)
+        return PerceptionOutput(_TL_STATE.get(tl.get_state(), TLState.UNKNOWN), dist, ld, ls, lid, peds)
+
+    def pedestrians(self) -> tuple[Obstacle, ...]:
+        """정답값 보행자: 자차 주변 PEDESTRIAN_RADIUS 안의 모든 보행자 위치·속도 (half_length = 몸 반경)."""
+        ego = self._ego.get_location()
+        out = []
+        for w in self._world.get_actors().filter("walker.pedestrian.*"):
+            loc = w.get_location()
+            if loc.distance(ego) > PEDESTRIAN_RADIUS:
+                continue
+            vel = w.get_velocity()
+            out.append(Obstacle(w.id, loc.x, loc.y, vel.x, vel.y, w.bounding_box.extent.x))
+        return tuple(out)
 
     def lead_vehicle(self) -> Lead | None:
         """정답값 앞차: 시뮬레이터의 모든 차량 위치·속도 → 내 경로 위 가장 가까운 차 (perception/lead.py)."""

@@ -30,9 +30,9 @@ from driveloop.control.lateral import pick_lookahead_point, pure_pursuit_steer, 
 from driveloop.control.pid import LongitudinalController
 from driveloop.data.collection_config import CaptureCamera, load_collection_config
 from driveloop.eval.driving import nan_to_none, summarize_run
-from driveloop.eval.scenarios import SCENARIOS, Scenario, blend_paths, heading_change
-from driveloop.planning.route import RoutePlanner
+from driveloop.eval.scenarios import SCENARIOS, Scenario, blend_paths
 from driveloop.sim.client import ActorPool, connect, speed_mps, synchronous_mode
+from driveloop.sim.scenario_start import choose_start, same_dir_neighbor
 from driveloop.sim.sensors import attach_rgb_camera, get_frame
 from driveloop.sim.weather import apply_weather
 
@@ -63,33 +63,6 @@ class ScenarioConfig:
 
 def _r(v, nd=2):
     return None if v is None else round(v, nd)
-
-
-def _same_dir_neighbor(wp: carla.Waypoint) -> carla.Waypoint | None:
-    """같은 방향 옆 차선 (끼어들기 출발 차선)."""
-    for n in (wp.get_left_lane(), wp.get_right_lane()):
-        if n is not None and n.lane_type == carla.LaneType.Driving and n.lane_id * wp.lane_id > 0:
-            return n
-    return None
-
-
-def choose_start(world_map, points, seed: int, drv, cfg: ScenarioConfig, sc: Scenario):
-    """시드 순서로 스폰 지점을 돌며 앞쪽이 곧고, (끼어들기면) 옆 차선이 있는 곳."""
-    for idx in random.Random(seed).sample(range(len(points)), len(points)):
-        sp = points[idx]
-        path = RoutePlanner(world_map, sp.location, drv.route_spacing, cfg.straight_length + 60,
-                            random.Random(seed)).waypoints
-        if len(path) * drv.route_spacing < cfg.straight_length:
-            continue
-        xy = [(w.transform.location.x, w.transform.location.y) for w in path]
-        if heading_change(xy, cfg.straight_length) > cfg.max_heading_change:
-            continue
-        if sc.adjacent:
-            adj = [_same_dir_neighbor(w) for w in path[: int(cfg.straight_length / drv.route_spacing)]]
-            if any(a is None for a in adj):
-                continue
-        return idx, path
-    raise RuntimeError(f"{sc.name}: 조건에 맞는 출발 지점 없음")
 
 
 class LeadDriver:
@@ -125,7 +98,7 @@ def _clip_frame(front_img, chase_img, r, dbg):
     import cv2
 
     from driveloop.sim.sensors import image_to_rgb
-    from driveloop.viz.overlay import draw_detections, draw_panel, paste_inset
+    from driveloop.viz.overlay import _text, draw_detections, draw_panel, paste_inset
 
     view = image_to_rgb(front_img)
     if dbg is not None:
@@ -135,8 +108,7 @@ def _clip_frame(front_img, chase_img, r, dbg):
             cv2.rectangle(view, (x1 - 2, y1 - 2), (x2 + 2, y2 + 2), (255, 210, 60), 3, cv2.LINE_AA)
             gt = f" (gt {r.gt.lead_distance:.1f})" if r.gt.lead_distance is not None else ""
             label = f"LEAD {r.p.lead_distance:.1f} m{gt}"
-            cv2.putText(view, label, (x1, max(18, y1 - 8)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 4, cv2.LINE_AA)
-            cv2.putText(view, label, (x1, max(18, y1 - 8)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 210, 60), 2, cv2.LINE_AA)
+            _text(view, label, (x1, max(18, y1 - 8)), 0.6, (255, 210, 60), 2)
     W, G, Y, C = (255, 255, 255), (180, 180, 180), (255, 210, 60), (90, 210, 255)
 
     def fmt(d, s):
@@ -156,14 +128,15 @@ def run_one(world, sim_cfg, drv, cfg: ScenarioConfig, sc: Scenario, seed: int, p
     dt = sim_cfg.fixed_delta_seconds
     front = CaptureCamera()
     wmap = world.get_map()
-    idx, path = choose_start(wmap, wmap.get_spawn_points(), seed, drv, cfg, sc)
+    idx, path = choose_start(wmap, wmap.get_spawn_points(), seed, drv.route_spacing, cfg.straight_length,
+                             cfg.max_heading_change, sc.adjacent, sc.name)
     sp = wmap.get_spawn_points()[idx]
     k = min(len(path) - 1, round(sc.lead_offset / drv.route_spacing))
-    lead_wp = _same_dir_neighbor(path[k]) if sc.adjacent else path[k]
+    lead_wp = same_dir_neighbor(path[k]) if sc.adjacent else path[k]
     ego_pts = [(w.transform.location.x, w.transform.location.y) for w in path]
     adj_pts = None
     if sc.adjacent:
-        adj = [_same_dir_neighbor(w) for w in path]
+        adj = [same_dir_neighbor(w) for w in path]
         adj_pts = [(a.transform.location.x, a.transform.location.y) if a else p for a, p in zip(adj, ego_pts)]
 
     lights = list(world.get_actors().filter("traffic.traffic_light"))

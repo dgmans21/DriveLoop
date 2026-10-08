@@ -81,3 +81,67 @@ def heading_change(path: Sequence[Point], length: float) -> float:
 def blend_paths(a: Sequence[Point], b: Sequence[Point], w: float) -> list[Point]:
     """같은 길이의 두 경로를 w(0=a, 1=b) 비율로 섞는다 (옆 차선 → 내 차선)."""
     return [(ax + (bx - ax) * w, ay + (by - ay) * w) for (ax, ay), (bx, by) in zip(a, b)]
+
+
+# ---- C-2 보행자 시나리오 ------------------------------------------------------------------------------
+# 좌표: 보행자 출발점 = 내 경로에서 ahead m 앞 waypoint 기준, u = 차선 중심에서 연석(오른쪽) 쪽으로 잰 옆 거리.
+# 출발 옆 위치 = 기준선 + offset. 기준선은 보도 경계("sidewalk") 또는 내 차선 끝("edge"). 출발 지점은 맨 오른쪽
+# 차선이고 바로 옆에 보도가 있는 곳만 (sim/scenario_start.sidewalk_offset).
+# 보행자는 내 앞 범퍼가 trigger_gap m 안으로 들어오면 움직이기 시작한다 (시간이 아니라 거리 기준 → 내 속도가
+# 실행마다 조금 달라도 '몇 m 앞에서 뛰어드는지'가 같다).
+#
+#   cross    : 50m 앞 보도(경계 +1m)에서 30m 남았을 때 1.4 m/s로 건넘 → 감속 후 통과
+#   stop     : 같은 출발, 내 차선 가운데(u=0)에서 8초 멈춘 뒤 마저 건넘 → 정지 간격·대기·재출발
+#   dartout  : 60m 앞 차선 끝 바로 밖(+0.35m, 주차 차 사이 같은 위치)에서 18m 남았을 때 3 m/s로 뛰어듦
+#   sidewalk : 40m 앞 보도(경계 +1.5m)를 나를 향해 1.4 m/s로 걸음 → 감속하면 안 됨
+#   curb     : 40m 앞 차선 끝 +0.5m(갓길)에 계속 서 있음 → 감속하면 안 됨
+
+CROSS_END_U = -5.0             # m, 건너는 보행자는 차선 중심 반대쪽 5m(옆 차선 너머)에서 멈춘다
+
+
+@dataclass(frozen=True)
+class PedCommand:
+    u_speed: float             # m/s, 연석 쪽(+u)으로의 속도. 음수 = 건너는 방향
+    along_speed: float = 0.0   # m/s, 내 진행 방향 성분 (음수 = 나를 향해)
+
+
+@dataclass(frozen=True)
+class PedScenario:
+    name: str
+    ahead: float               # m, 내 출발 위치에서 경로를 따라 보행자 출발점까지 (차 중심 기준)
+    anchor: str                # "sidewalk" = 보도 경계, "edge" = 내 차선 끝
+    offset: float              # m, 기준선에서 바깥(연석 쪽)으로
+    trigger_gap: float | None  # m, 내 앞 범퍼 ~ 보행자 거리가 이 안이면 출발 (None = 처음부터)
+    yield_expected: bool       # 양보해야 정상인 시나리오인가 (아니면 감속이 곧 헛감속)
+    seconds: float = 30.0
+
+    def start_u(self, lane_width: float, sidewalk_u: float) -> float:
+        return (sidewalk_u if self.anchor == "sidewalk" else lane_width / 2) + self.offset
+
+    def command(self, since: float | None, u: float, u_start: float) -> PedCommand:
+        """since = 출발 후 경과 초 (아직 출발 전이면 None), u = 지금 옆 위치, u_start = 출발 옆 위치."""
+        if self.name == "sidewalk":
+            return PedCommand(0.0, -1.4)
+        if since is None or self.name == "curb":
+            return PedCommand(0.0)
+        if self.name == "cross":
+            return PedCommand(-1.4 if u > CROSS_END_U else 0.0)
+        if self.name == "stop":
+            t_mid = u_start / 1.4                          # 차선 가운데(u=0)에 닿는 시각
+            if since < t_mid:
+                return PedCommand(-1.4)
+            if since < t_mid + 8.0:
+                return PedCommand(0.0)
+            return PedCommand(-1.4 if u > CROSS_END_U else 0.0)
+        if self.name == "dartout":
+            return PedCommand(-3.0 if u > CROSS_END_U else 0.0)
+        raise ValueError(f"알 수 없는 보행자 시나리오: {self.name}")
+
+
+PED_SCENARIOS = {
+    "cross": PedScenario("cross", 50.0, "sidewalk", 1.0, 30.0, True),
+    "stop": PedScenario("stop", 50.0, "sidewalk", 1.0, 30.0, True),
+    "dartout": PedScenario("dartout", 60.0, "edge", 0.35, 18.0, True),
+    "sidewalk": PedScenario("sidewalk", 40.0, "sidewalk", 1.5, None, False),
+    "curb": PedScenario("curb", 40.0, "edge", 0.5, None, False),
+}

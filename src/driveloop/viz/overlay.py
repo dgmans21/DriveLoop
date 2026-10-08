@@ -16,7 +16,13 @@ SHORT = {"vehicle": "car", "tl_red": "red", "tl_yellow": "yellow", "tl_green": "
 
 
 def _text(img, text, org, scale=0.55, color=(255, 255, 255), thick=1):
-    cv2.putText(img, text, org, cv2.FONT_HERSHEY_SIMPLEX, scale, (0, 0, 0), thick + 3, cv2.LINE_AA)
+    # 테두리는 같은 굵기로 주변 8방향에 그린다 — Hershey 글꼴은 굵기가 커지면 글자 간격도 넓어져서
+    # 굵은 테두리 문자열이 본문보다 길어지고 끝에 잔상이 남는다 ("TRUTH H")
+    x, y = org
+    for dx in (-2, 0, 2):
+        for dy in (-2, 0, 2):
+            if dx or dy:
+                cv2.putText(img, text, (x + dx, y + dy), cv2.FONT_HERSHEY_SIMPLEX, scale, (0, 0, 0), thick, cv2.LINE_AA)
     cv2.putText(img, text, org, cv2.FONT_HERSHEY_SIMPLEX, scale, color, thick, cv2.LINE_AA)
 
 

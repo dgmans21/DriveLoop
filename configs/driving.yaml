@@ -20,6 +20,11 @@ acc_time_gap: 1.8        # s, 원하는 차간 시간 (사람 운전 권장 약 
 acc_standstill_gap: 5.0  # m, 정지했을 때 앞차와의 간격
 acc_tau: 1.5             # s, 간격 오차를 줄이는 시간 상수 (작을수록 급하게 따라붙음)
 
+# 보행자 양보 (planning/pedestrian.py): 양보할 보행자는 '서 있는 앞차'로 ACC에 넘긴다
+ped_corridor_half: 1.5   # m, 내 통로 반폭 = 차 폭 절반(약 1.05) + 여유. 이 안의 보행자는 무조건 기다린다
+ped_horizon: 4.0         # s, 통로로 걸어오는 보행자의 진입 예측 범위
+ped_buffer: 1.0          # s, '내가 지나가기 전에 들어온다'에 더하는 여유
+
 # 카메라로 앞차 거리 (perception/mono_distance.py, 바닥선 방법 Z = f·H/(y2 − cy))
 # H는 설치 높이(1.7m, 차량 원점 기준)가 아니라 자동 라벨 거리로 보정한 값 (scripts/33_eval_lead_distance.py):
 # 1.7을 쓰면 0~30m에서 약 +0.8~0.9m 멀게 봄(위험한 쪽), 보정값은 0~20m 오차 중앙값 0.3~0.45m

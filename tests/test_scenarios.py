@@ -40,3 +40,32 @@ def test_heading_change_straight_vs_turn():
 def test_blend_paths():
     a, b = [(0.0, 0.0), (10.0, 0.0)], [(0.0, 3.5), (10.0, 3.5)]
     assert blend_paths(a, b, 0.5) == [(0.0, 1.75), (10.0, 1.75)]
+
+
+def test_ped_waits_until_triggered_then_crosses():
+    from driveloop.eval.scenarios import PED_SCENARIOS
+    s = PED_SCENARIOS["cross"]
+    assert s.command(None, 3.3, 3.3).u_speed == 0.0
+    assert s.command(0.5, 3.0, 3.3).u_speed == pytest.approx(-1.4)
+    assert s.command(9.0, -5.1, 3.3).u_speed == 0.0              # 다 건너면 멈춤
+
+
+def test_ped_stop_scenario_waits_in_lane_center_then_continues():
+    from driveloop.eval.scenarios import PED_SCENARIOS
+    s = PED_SCENARIOS["stop"]
+    assert s.command(1.0, 1.9, 2.8).u_speed < 0
+    assert s.command(5.0, 0.0, 2.8).u_speed == 0.0               # 2.8/1.4 = 2초 뒤부터 8초 멈춤
+    assert s.command(10.5, 0.0, 2.8).u_speed < 0
+
+
+def test_ped_start_position_is_relative_to_sidewalk_or_lane_edge():
+    from driveloop.eval.scenarios import PED_SCENARIOS
+    assert PED_SCENARIOS["cross"].start_u(3.5, 2.88) == pytest.approx(3.88)     # 보도 경계 + 1m
+    assert PED_SCENARIOS["curb"].start_u(3.5, 2.88) == pytest.approx(2.25)      # 차선 끝 + 0.5m
+
+
+def test_sidewalk_and_curb_never_enter_the_road():
+    from driveloop.eval.scenarios import PED_SCENARIOS
+    for name in ("sidewalk", "curb"):
+        for since in (None, 0.0, 10.0):
+            assert PED_SCENARIOS[name].command(since, 3.0, 3.0).u_speed == 0.0

@@ -126,12 +126,61 @@ def lead_metrics(log: pd.DataFrame, dt: float, hard_decel: float = 4.0, min_foll
             out["min_ttc"] = round(float((log.lead_dist[closing] / (log.speed - log.lead_speed)[closing]).min()), 2)
         if has.any():
             out["min_lead_gap"] = round(float(log.lead_dist[has].min()), 2)
-    # 실제 감속도: 0.25초 이동 평균 속도의 변화율. 거의 선 상태(< hard_min_speed)에서 0으로 떨어지는 순간은
-    # 감속도가 크게 계산되지만 체감 급제동이 아니다 (acc_pilot: 출발 직후 1 m/s → 0) → 제외
+    out["hard_brakes"] = hard_brakes(log, dt, hard_decel, hard_min_speed)[0]
+    return out
+
+
+def hard_brakes(log: pd.DataFrame, dt: float, hard_decel: float = 4.0, hard_min_speed: float = 3.0) -> tuple[int, float]:
+    """(급제동 횟수, 최대 감속도 m/s²).
+
+    실제 감속도: 0.25초 이동 평균 속도의 변화율. 거의 선 상태(< hard_min_speed)에서 0으로 떨어지는 순간은
+    감속도가 크게 계산되지만 체감 급제동이 아니다 (acc_pilot: 출발 직후 1 m/s → 0) → 제외
+    """
     k = max(1, round(0.25 / dt))
     v = log.speed.rolling(k, min_periods=1).mean()
-    hard = ((-(v.diff() / dt)) > hard_decel) & (v.shift() > hard_min_speed)
-    out["hard_brakes"] = int((hard & ~hard.shift(fill_value=False)).sum())
+    decel = (-(v.diff() / dt)).where(v.shift() > hard_min_speed)
+    hard = decel > hard_decel
+    peak = float(decel.max()) if decel.notna().any() else 0.0
+    return int((hard & ~hard.shift(fill_value=False)).sum()), round(max(peak, 0.0), 2)
+
+
+def ped_metrics(log: pd.DataFrame, dt: float, body_half: float = 1.3, corridor_half: float = 1.5,
+                cruise_speed: float = 30 / 3.6, after_s: float = 3.0) -> dict:
+    """보행자 시나리오 지표 (C-2). 로그 열: ped_gap(경로를 따라 잰 범퍼~보행자), ped_lat(경로 중심선에서 옆 거리),
+    yield_id(양보 중인 보행자, 없으면 비어 있음).
+
+    - min_ped_gap: 보행자가 내 차체 폭(body_half) 안에 있는 동안 가장 가까웠던 범퍼 간격 (0 이하면 부딪힘)
+    - yield_s: 양보(감속 상한) 중이던 시간 — 양보가 필요 없는 시나리오(보도·연석)에선 곧 헛감속 시간
+    - min_speed_after_cruise: 처음 순항 속도에 닿은 뒤 최저 속도 (헛감속의 크기)
+    - stop_s: 출발 후 선 시간, restart_delay: 내가 서 있는 동안 보행자가 통로를 벗어난 순간 → 1 m/s 넘을 때까지
+    """
+    # 평가 구간: 보행자를 지나간 뒤 after_s초까지 — 그 뒤 커브 감속 등은 보행자 판단과 무관 (ped_scen_v1 시드 3)
+    passed = log.index[log.ped_gap.notna() & (log.ped_gap <= -2.0)]
+    if len(passed):
+        log = log.loc[: passed[0] + round(after_s / dt)]
+    lat = log.ped_lat.abs()
+    ahead = log.ped_gap.notna() & (log.ped_gap > -2.0)
+    inside = ahead & (lat <= body_half)
+    hb, peak = hard_brakes(log, dt)
+    cruise_idx = log.index[log.speed >= 0.9 * cruise_speed]   # PID 정상 상태 오차로 순항이 목표보다 ~0.6 m/s 낮다
+    moved = log.index[log.speed > 3.0]                         # 스폰 직후 차가 떨어지며 생기는 속도는 출발이 아님
+    out = {
+        "min_ped_gap": round(float(log.ped_gap[inside].min()), 2) if inside.any() else None,
+        "yield_s": round(float(log.yield_id.notna().sum() * dt), 2),
+        "min_speed_after_cruise": round(float(log.speed[cruise_idx[0]:].min()), 2) if len(cruise_idx) else None,
+        "stop_s": round(float((log.speed[moved[0]:] < 0.1).sum() * dt), 2) if len(moved) else 0.0,
+        "restart_delay": None,
+        "hard_brakes": hb,
+        "max_decel": peak,
+    }
+    in_corr = ahead & (lat <= corridor_half)
+    left = log.index[(in_corr.shift(fill_value=False)) & ~in_corr]
+    for i in left:
+        if log.speed[i] < 0.5:
+            go = log.index[(log.index > i) & (log.speed > 1.0)]
+            if len(go):
+                out["restart_delay"] = round(float(log.t[go[0]] - log.t[i]), 2)
+            break
     return out
 
 

@@ -15,6 +15,7 @@ import cv2
 import numpy as np
 
 from driveloop.config import PROJECT_ROOT
+from driveloop.viz.overlay import _text
 
 # BGR. 차량=파랑, 신호 색=같은 색 (분포 리포트와 동일한 팔레트)
 COLORS = {"vehicle": (214, 120, 42), "tl_red": (72, 73, 227), "tl_yellow": (0, 161, 237), "tl_green": (0, 131, 0)}
@@ -22,8 +23,7 @@ LABEL = {"vehicle": "car", "tl_red": "red", "tl_yellow": "yellow", "tl_green": "
 
 
 def put_text(img, text, org, scale=0.7, color=(255, 255, 255), thick=2):
-    cv2.putText(img, text, org, cv2.FONT_HERSHEY_SIMPLEX, scale, (0, 0, 0), thick + 3, cv2.LINE_AA)
-    cv2.putText(img, text, org, cv2.FONT_HERSHEY_SIMPLEX, scale, color, thick, cv2.LINE_AA)
+    _text(img, text, org, scale, color, thick)     # 테두리 잔상 없는 공용 함수 (viz/overlay.py)
 
 
 def title_card(w, h, lines):
