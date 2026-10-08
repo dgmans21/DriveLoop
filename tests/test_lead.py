@@ -55,12 +55,21 @@ def test_tracker_needs_two_frames_to_confirm():
     assert t.update(19.8, 8.0) is not None
 
 
-def test_tracker_estimates_lead_speed_from_distance_change():
+def test_tracker_converges_to_lead_speed_from_distance_change():
     from driveloop.perception.lead import LeadTracker
-    t = LeadTracker(dt=0.05, alpha=1.0)
+    t = LeadTracker(dt=0.05)
+    lead = None
+    for k in range(80):                                 # 0.05초에 0.1m씩 가까워짐 → 상대 −2 m/s → 앞차 6 m/s
+        lead = t.update(30.0 - 0.1 * k, 8.0)
+    assert lead.speed == pytest.approx(6.0, abs=0.2)
+
+
+def test_new_lead_starts_as_stopped_conservatively():
+    from driveloop.perception.lead import LeadTracker
+    t = LeadTracker(dt=0.05)
     t.update(20.0, 8.0)
-    lead = t.update(20.0 - 0.1, 8.0)                    # 0.05초에 0.1m 가까워짐 → 상대 −2 m/s → 앞차 6 m/s
-    assert lead.speed == pytest.approx(6.0)
+    lead = t.update(19.6, 8.0)                          # 정말 서 있는 차라면 0.05초에 0.4m 가까워짐
+    assert lead.speed < 1.0                             # 처음엔 '서 있다'에 가깝게 → 늦게 제동하지 않음
 
 
 def test_tracker_holds_through_short_misses_then_drops():

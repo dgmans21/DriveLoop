@@ -139,6 +139,13 @@ th, td { padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--li
 th:first-child, td:first-child { text-align: left; }
 th { color: var(--ink-2); font-weight: 600; font-size: 13px; }
 .h3 { font-size: 16px; margin: 22px 0 8px; }
+#acc-evo th:nth-child(2), #acc-evo td:nth-child(2) { text-align: left; white-space: normal; min-width: 220px; }
+#acc-cases { margin-top: 14px; }
+.clips { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 8px; }
+.clips:empty { display: none; }
+.clip { margin: 0; }
+.clip video { width: 100%; border-radius: var(--radius); display: block; background: #000; }
+.clip figcaption { font-size: 13px; color: var(--ink-2); margin-top: 4px; }
 .sev { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; margin-left: 6px; vertical-align: 2px; border: 1px solid currentColor; }
 .sev.high { color: var(--tl-red); }
 .sev.mid { color: var(--tl-yellow); }

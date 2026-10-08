@@ -61,25 +61,34 @@ class LeadTracker:
     """카메라 앞차 측정(거리만) → 확정된 앞차 + 속도 추정.
 
     - 확정: confirm_frames 연속으로 비슷한 거리(max_jump 이내)에 보여야 앞차로 인정 → 오검출 1프레임에 급제동하지 않게
-    - 유지: max_missed 프레임까지 놓쳐도 마지막 추정을 (속도로 앞당겨) 유지 → 순간 검출 누락에 출발하지 않게
-    - 속도: 앞차 속도 = 내 속도 + 거리 변화율, 지수 평활(alpha)로 흔들림 줄임
+    - 유지: max_missed 프레임까지 놓쳐도 (상대 속도로 앞당긴) 추정을 유지 → 순간 검출 누락에 출발하지 않게
+    - 속도: 알파-베타 필터 (간격 x와 상대 속도 r을 함께 추적, 앞차 속도 = 내 속도 + r)
+        예측 x' = x + r·dt, 잔차 e = 측정 − x', x = x' + a·e, r = r + (b/dt)·e
+      새 앞차는 '서 있다'고 가정하고 시작 (r = −내 속도): 처음 본 순간 속도를 모르므로 보수적으로
     - id: 새 앞차로 바뀔 때마다 증가 (같은 차를 계속 따라가는지 로그로 구분)
+
+    B-7 근거 (acc_scen_v2 모델 로그 16회 재생, scripts 없이 오프라인 비교):
+      이전(지수 평활, '나와 같은 속도'로 시작): 속도 오차 중앙값 1.03 m/s, 앞차를 2 m/s 넘게 빠르게 본 비율 12.8%
+        (처음 2초 24.8%) → 서 있는 차를 움직인다고 보고 늦게 제동, 흔들림으로 급제동 3배
+      알파-베타(0.3/0.02) + '서 있다'로 시작: 중앙값 0.48 m/s, 빠르게 본 비율 7.1% (처음 2초 9.9%)
     """
 
     def __init__(self, dt: float, confirm_frames: int = 2, max_missed: int = 3, max_jump: float = 4.0,
-                 alpha: float = 0.3) -> None:
+                 a: float = 0.3, b: float = 0.02) -> None:
         self.dt, self.confirm_frames, self.max_missed = dt, confirm_frames, max_missed
-        self.max_jump, self.alpha = max_jump, alpha
+        self.max_jump, self.a, self.b = max_jump, a, b
         self._dist: float | None = None
-        self._speed: float | None = None
+        self._rel: float = 0.0
         self._seen = 0
         self._missed = 0
         self._id = 0
+        self._ego = 0.0
 
     def reset(self) -> None:
-        self._dist, self._speed, self._seen, self._missed = None, None, 0, 0
+        self._dist, self._rel, self._seen, self._missed = None, 0.0, 0, 0
 
     def update(self, measured: float | None, ego_speed: float) -> Lead | None:
+        self._ego = ego_speed
         if measured is None:
             if self._dist is None:
                 return None
@@ -87,23 +96,23 @@ class LeadTracker:
             if self._missed > self.max_missed:
                 self.reset()
                 return None
-            if self._speed is not None:                   # 놓친 동안은 상대 속도로 거리를 앞당겨 둔다
-                self._dist = max(0.0, self._dist + (self._speed - ego_speed) * self.dt)
+            self._dist = max(0.0, self._dist + self._rel * self.dt)   # 놓친 동안은 상대 속도로 앞당겨 둔다
             return self._confirmed()
         if self._dist is None or abs(measured - self._dist) > self.max_jump:
             self._id += 1                                  # 새 앞차 (처음이거나 거리가 갑자기 바뀜)
-            self._dist, self._speed, self._seen, self._missed = measured, None, 1, 0
+            self._dist, self._rel, self._seen, self._missed = measured, -ego_speed, 1, 0   # '서 있다'로 시작
             return self._confirmed()
-        rate = (measured - self._dist) / self.dt           # 거리 변화율 = 앞차 속도 − 내 속도
-        v_meas = ego_speed + rate
-        self._speed = v_meas if self._speed is None else self._speed + self.alpha * (v_meas - self._speed)
-        self._dist, self._seen, self._missed = measured, self._seen + 1, 0
+        pred = self._dist + self._rel * self.dt
+        res = measured - pred
+        self._dist = pred + self.a * res
+        self._rel += (self.b / self.dt) * res
+        self._seen, self._missed = self._seen + 1, 0
         return self._confirmed()
 
     def _confirmed(self) -> Lead | None:
         if self._seen < self.confirm_frames:
             return None
-        return Lead(self._id, self._dist, self._speed if self._speed is not None else 0.0)
+        return Lead(self._id, self._dist, self._ego + self._rel)
 
 
 def find_lead(path: Sequence[Point], ego: Point, ego_front_offset: float, obstacles: Sequence[Obstacle],

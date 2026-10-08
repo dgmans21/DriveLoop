@@ -122,11 +122,55 @@ def summarize(csv: pd.DataFrame) -> dict:
     }
 
 
+def build_acc(versions: list[str]) -> dict | None:
+    """앞차 시나리오(52_acc_scenarios.py) 결과 → 웹용: 최종 버전의 시나리오별 정답값 vs 모델 + 버전별 개선 과정."""
+    root = PROJECT_ROOT / "outputs" / "compare"
+    out = {"versions": [], "final": []}
+    for v in versions:
+        runs = sorted((root / v / "runs").glob("*.json"))
+        if not runs:
+            continue
+        rows = [json.loads(p.read_text(encoding="utf-8")) for p in runs]
+        df = pd.DataFrame(rows)
+        m = df[df.perception == "model"]
+        speed_err = []
+        for p in (root / v / "runs").glob("*_model.csv"):
+            log = pd.read_csv(p)
+            both = log.lead_dist.notna() & log.p_lead_dist.notna()
+            speed_err.append((log.p_lead_speed - log.lead_speed)[both])
+        se = pd.concat(speed_err) if speed_err else pd.Series(dtype=float)
+        stopped = m[m.scenario == "stopped"]
+        out["versions"].append({
+            "name": v, "runs": int(len(df)), "collisions": int(df.collisions.sum()),
+            "hard_model": int(m.hard_brakes.sum()), "hard_gt": int(df[df.perception == "gt"].hard_brakes.sum()),
+            "dist_err": round(float(m.lead_err_med.mean()), 2),
+            "speed_err": round(float(se.abs().median()), 2) if len(se) else None,
+            "speed_over": round(float((se > 2).mean()), 3) if len(se) else None,
+            "stopped_ttc": round(float(stopped.min_ttc.min()), 2) if len(stopped) else None,
+        })
+        last = df
+    agg = last.groupby(["scenario", "perception"]).agg(
+        runs=("seed", "size"), collisions=("collisions", "sum"), min_gap=("min_lead_gap", "min"),
+        min_ttc=("min_ttc", "min"), hard=("hard_brakes", "sum"), final_gap=("final_gap", "mean"),
+        dist_err=("lead_err_med", "mean"), miss=("lead_miss_rate", "mean")).reset_index()
+    order = {"follow": 0, "brake": 1, "stopped": 2, "cutin": 3}
+    agg = agg.sort_values(["scenario", "perception"], key=lambda s: s.map(order) if s.name == "scenario" else s)
+    out["final"] = [{k: (None if pd.isna(x) else (round(float(x), 2) if isinstance(x, float) else x))
+                     for k, x in r.items()} for r in agg.to_dict(orient="records")]
+    lead_rep = PROJECT_ROOT / "outputs" / "lead_distance" / "report.json"
+    if lead_rep.exists():
+        rep = json.loads(lead_rep.read_text(encoding="utf-8"))
+        out["mono"] = [r for r in rep["table"] if r["method"] == "z_ground"]
+    return out if out["versions"] else None
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--web-root", default=str(PROJECT_ROOT / "outputs" / "web"))
     ap.add_argument("--highlight", default="clear_noon:122:137", help="조건:시작초:끝초 (오버레이 녹화에서 자름)")
     ap.add_argument("--skip-video", action="store_true", help="JSON만 갱신 (영상 재압축 생략)")
+    ap.add_argument("--acc-versions", default="acc_scen_v2,acc_scen_v3,acc_scen_v4",
+                    help="앞차 시나리오 결과 (개선 과정 순서, 마지막이 최종)")
     ap.add_argument("--compare", default="compare_v2",
                     help="outputs/compare/<이름>/summary.json 을 웹에 넣는다 (--baseline으로 만든 전/후 비교 포함)")
     args = ap.parse_args()
@@ -184,6 +228,11 @@ def main() -> None:
         print(f"[site] compare ← {cmp_src}")
     else:
         print(f"[site] 비교 결과 없음: {cmp_src} (51_compare_report.py 실행)")
+
+    acc = build_acc(args.acc_versions.split(","))
+    if acc:
+        (ASSETS / "acc.json").write_text(json.dumps(acc, ensure_ascii=False, indent=1), encoding="utf-8")
+        print(f"[site] acc ← {', '.join(v['name'] for v in acc['versions'])}")
 
     if not args.skip_video and args.highlight:
         cond, a, b = args.highlight.split(":")

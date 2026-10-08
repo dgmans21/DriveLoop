@@ -1,0 +1,17 @@
+# B-6: 앞차 시나리오 — 정답값 인지 vs 내 모델 인지 (scripts/52_acc_scenarios.py)
+# 시나리오 정의는 src/driveloop/eval/scenarios.py (follow / brake / stopped / cutin)
+name: acc_scen_v2              # v1 = 첫 파일럿(맑은 낮, 끼어들기 연출 실패) — 결과는 지우지 않고 보존
+map: Town05
+conditions:
+  - [clear, noon]
+  - [rain, noon]
+  - [clear, night]
+  - [rain, night]
+conditions_source: configs/collection/v3.yaml
+scenarios: [follow, brake, stopped, cutin]
+seeds: [1]
+seconds: 35
+perceptions: [gt, model]
+weights: runs/detect/v3_base/weights/best.pt
+conf: 0.10
+output_root: outputs/compare

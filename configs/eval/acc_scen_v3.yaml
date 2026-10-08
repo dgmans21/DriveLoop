@@ -1,0 +1,17 @@
+# B-6: 앞차 시나리오 — 정답값 인지 vs 내 모델 인지 (scripts/52_acc_scenarios.py)
+# 시나리오 정의는 src/driveloop/eval/scenarios.py (follow / brake / stopped / cutin)
+name: acc_scen_v3              # B-7: 앞차 속도 추정을 알파-베타 + '서 있다' 시작으로 바꾼 뒤 같은 32회 (v2와 비교)
+map: Town05
+conditions:
+  - [clear, noon]
+  - [rain, noon]
+  - [clear, night]
+  - [rain, night]
+conditions_source: configs/collection/v3.yaml
+scenarios: [follow, brake, stopped, cutin]
+seeds: [1]
+seconds: 35
+perceptions: [gt, model]
+weights: runs/detect/v3_base/weights/best.pt
+conf: 0.10
+output_root: outputs/compare

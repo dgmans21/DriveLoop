@@ -24,7 +24,7 @@ from driveloop.perception.association import (Association, Detection, TemporalVo
                                               expected_head_boxes)
 from driveloop.perception.ground_truth import GroundTruthPerception
 from driveloop.perception.lead import LeadTracker, Obstacle, find_lead
-from driveloop.perception.mono_distance import ground_distance
+from driveloop.perception.mono_distance import ground_distance, ray_road_hit
 from driveloop.perception.types import PerceptionOutput, TLState
 from driveloop.planning.route import RoutePlanner
 from driveloop.sim.sensors import image_to_rgb
@@ -60,12 +60,14 @@ class ModelPerception:
                  width: int, height: int, fov: float, weights: str, lookahead: float,
                  conf: float = 0.10, imgsz: int = 1280, voter: TemporalVoter | None = None, *,
                  lead_lookahead: float = 50.0, lane_half_width: float = 1.75, cam_height: float = 1.556,
-                 lead_min_conf: float = 0.3, dt: float = 0.05) -> None:
+                 lead_min_conf: float = 0.3, dt: float = 0.05, road_aware: bool = True,
+                 ground_offset: float = 0.144) -> None:
         self._map = GroundTruthPerception(world, ego, route, lookahead)
         self._ego, self._route = ego, route
         self._front_offset = ego.bounding_box.extent.x
         self._lead_lookahead, self._lane_half_width = lead_lookahead, lane_half_width
         self._cam_height, self._lead_min_conf = cam_height, lead_min_conf
+        self._road_aware, self._ground_offset = road_aware, ground_offset
         self._tracker = LeadTracker(dt)
         self._camera = camera
         self._W, self._H = width, height
@@ -114,21 +116,38 @@ class ModelPerception:
         return PerceptionOutput(TLState(voted), dist, **lead_kw)
 
     def _measure_lead(self, dets: list[Detection]) -> tuple[Detection | None, float | None]:
-        """차량 박스 아래 가운데 점 → (바닥선 거리 Z, 좌우 X) → 월드 좌표 → 경로 위 가장 가까운 차의 범퍼 간격."""
+        """차량 박스 아래 가운데 점 → 월드 좌표 → 경로 위 가장 가까운 차의 범퍼 간격.
+
+        road_aware(기본, B-7b): 카메라 광선이 '지도의 도로 높이'(내 경로 waypoint z)와 만나는 점 → 경사 보정
+          카메라 자세(위치·pitch 포함)는 시뮬레이터 값 = 완벽한 측위 + IMU 가정
+        아니면: 평평한 도로 가정의 바닥선 거리 (B-4, 오르막에서 멀게 봄 → acc_scen_v3 정차 차량을 20m에서야 인식)
+        """
         fx, fy, cx, cy = self._K[0, 0], self._K[1, 1], self._K[0, 2], self._K[1, 2]
         tf = self._camera.get_transform()
-        fwd, right = tf.get_forward_vector(), tf.get_right_vector()
+        fwd, right, up = tf.get_forward_vector(), tf.get_right_vector(), tf.get_up_vector()
+        road = [(w.transform.location.x, w.transform.location.y, w.transform.location.z)
+                for w in self._route.waypoints] if self._road_aware else None
         cands, obstacles = [], []
         for d in dets:
             if d.cls != "vehicle" or d.conf < self._lead_min_conf:
                 continue
             x1, _, x2, y2 = d.box
-            z = ground_distance(min(y2, self._H), fy, cy, self._cam_height)
-            if z is None:
-                continue
-            x = ((x1 + x2) / 2 - cx) * z / fx
-            wx = tf.location.x + fwd.x * z + right.x * x
-            wy = tf.location.y + fwd.y * z + right.y * x
+            u, v = (x1 + x2) / 2, min(y2, self._H)
+            if road is not None:
+                a, b = (u - cx) / fx, -(v - cy) / fy               # 카메라 좌표: x 앞, y 오른쪽, z 위
+                ray = (fwd.x + right.x * a + up.x * b, fwd.y + right.y * a + up.y * b, fwd.z + right.z * a + up.z * b)
+                hit = ray_road_hit((tf.location.x, tf.location.y, tf.location.z), ray, road,
+                                   max_dist=self._lead_lookahead + 15.0, ground_offset=self._ground_offset)
+                if hit is None:
+                    continue
+                wx, wy = hit[0], hit[1]
+            else:
+                z = ground_distance(v, fy, cy, self._cam_height)
+                if z is None:
+                    continue
+                x = (u - cx) * z / fx
+                wx = tf.location.x + fwd.x * z + right.x * x
+                wy = tf.location.y + fwd.y * z + right.y * x
             obstacles.append(Obstacle(len(cands), wx, wy, half_length=0.0))   # 점 = 차 뒷면 → 길이 보정 없음
             cands.append(d)
         if not obstacles:
