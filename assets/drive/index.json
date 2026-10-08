@@ -1,0 +1,46 @@
+[
+ {
+  "id": "clear_noon",
+  "map": "Town05",
+  "seconds": 180,
+  "agree": 0.888,
+  "found": 0.894,
+  "color": 0.996,
+  "red_run": 0,
+  "stops": 4,
+  "infer_ms": 11.8
+ },
+ {
+  "id": "rain_noon",
+  "map": "Town05",
+  "seconds": 180,
+  "agree": 0.959,
+  "found": 0.97,
+  "color": 1.0,
+  "red_run": 0,
+  "stops": 5,
+  "infer_ms": 11.6
+ },
+ {
+  "id": "clear_night",
+  "map": "Town05",
+  "seconds": 180,
+  "agree": 0.981,
+  "found": 0.992,
+  "color": 1.0,
+  "red_run": 0,
+  "stops": 5,
+  "infer_ms": 11.3
+ },
+ {
+  "id": "rain_night",
+  "map": "Town05",
+  "seconds": 180,
+  "agree": 0.983,
+  "found": 0.99,
+  "color": 1.0,
+  "red_run": 0,
+  "stops": 5,
+  "infer_ms": 11.5
+ }
+]

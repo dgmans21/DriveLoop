@@ -1,0 +1,213 @@
+{
+ "versions": [
+  {
+   "name": "acc_scen_v2",
+   "runs": 32,
+   "collisions": 0,
+   "hard_model": 32,
+   "hard_gt": 11,
+   "dist_err": 1.65,
+   "speed_err": 1.03,
+   "speed_over": 0.127,
+   "stopped_ttc": 2.09
+  },
+  {
+   "name": "acc_scen_v3",
+   "runs": 32,
+   "collisions": 0,
+   "hard_model": 23,
+   "hard_gt": 11,
+   "dist_err": 1.83,
+   "speed_err": 0.52,
+   "speed_over": 0.082,
+   "stopped_ttc": 2.07
+  },
+  {
+   "name": "acc_scen_v4",
+   "runs": 32,
+   "collisions": 0,
+   "hard_model": 18,
+   "hard_gt": 11,
+   "dist_err": 0.8,
+   "speed_err": 0.29,
+   "speed_over": 0.017,
+   "stopped_ttc": 4.04
+  },
+  {
+   "name": "acc_scen_v5",
+   "runs": 32,
+   "collisions": 0,
+   "hard_model": 4,
+   "hard_gt": 0,
+   "dist_err": 0.79,
+   "speed_err": 0.29,
+   "speed_over": 0.014,
+   "stopped_ttc": 3.78
+  }
+ ],
+ "final": [
+  {
+   "scenario": "follow",
+   "perception": "gt",
+   "runs": 4,
+   "collisions": 0,
+   "min_gap": 13.01,
+   "min_ttc": 6.06,
+   "hard": 0,
+   "final_gap": 13.85,
+   "dist_err": 0.0,
+   "miss": 0.0
+  },
+  {
+   "scenario": "follow",
+   "perception": "model",
+   "runs": 4,
+   "collisions": 0,
+   "min_gap": 13.71,
+   "min_ttc": 5.77,
+   "hard": 0,
+   "final_gap": 13.85,
+   "dist_err": 1.11,
+   "miss": 0.01
+  },
+  {
+   "scenario": "brake",
+   "perception": "gt",
+   "runs": 4,
+   "collisions": 0,
+   "min_gap": 4.85,
+   "min_ttc": 2.76,
+   "hard": 0,
+   "final_gap": 4.85,
+   "dist_err": 0.0,
+   "miss": 0.0
+  },
+  {
+   "scenario": "brake",
+   "perception": "model",
+   "runs": 4,
+   "collisions": 0,
+   "min_gap": 4.85,
+   "min_ttc": 3.08,
+   "hard": 0,
+   "final_gap": 4.85,
+   "dist_err": 0.46,
+   "miss": 0.01
+  },
+  {
+   "scenario": "stopped",
+   "perception": "gt",
+   "runs": 4,
+   "collisions": 0,
+   "min_gap": 5.32,
+   "min_ttc": 3.72,
+   "hard": 0,
+   "final_gap": 5.75,
+   "dist_err": 0.0,
+   "miss": 0.0
+  },
+  {
+   "scenario": "stopped",
+   "perception": "model",
+   "runs": 4,
+   "collisions": 0,
+   "min_gap": 5.16,
+   "min_ttc": 3.78,
+   "hard": 0,
+   "final_gap": 5.35,
+   "dist_err": 0.37,
+   "miss": 0.0
+  },
+  {
+   "scenario": "cutin",
+   "perception": "gt",
+   "runs": 4,
+   "collisions": 0,
+   "min_gap": 10.66,
+   "min_ttc": 4.14,
+   "hard": 0,
+   "final_gap": 14.84,
+   "dist_err": 0.0,
+   "miss": 0.0
+  },
+  {
+   "scenario": "cutin",
+   "perception": "model",
+   "runs": 4,
+   "collisions": 0,
+   "min_gap": 11.32,
+   "min_ttc": 4.33,
+   "hard": 4,
+   "final_gap": 15.04,
+   "dist_err": 1.21,
+   "miss": 0.0
+  }
+ ],
+ "mono": [
+  {
+   "bin": "(0, 10]",
+   "method": "z_ground",
+   "n": 827,
+   "mae": 0.32,
+   "p90": 0.76,
+   "rel_med": 0.09,
+   "bias": 0.32
+  },
+  {
+   "bin": "(10, 20]",
+   "method": "z_ground",
+   "n": 863,
+   "mae": 0.45,
+   "p90": 1.18,
+   "rel_med": 0.03,
+   "bias": -0.34
+  },
+  {
+   "bin": "(20, 30]",
+   "method": "z_ground",
+   "n": 732,
+   "mae": 1.35,
+   "p90": 2.39,
+   "rel_med": 0.05,
+   "bias": -1.26
+  },
+  {
+   "bin": "(30, 40]",
+   "method": "z_ground",
+   "n": 787,
+   "mae": 2.22,
+   "p90": 10.24,
+   "rel_med": 0.06,
+   "bias": -2.05
+  },
+  {
+   "bin": "(40, 60]",
+   "method": "z_ground",
+   "n": 999,
+   "mae": 3.26,
+   "p90": 13.19,
+   "rel_med": 0.07,
+   "bias": -2.84
+  }
+ ],
+ "clips": [
+  {
+   "scenario": "brake",
+   "condition": "clear_noon",
+   "src": "assets/acc/clear_noon_brake_s1_model.mp4",
+   "poster": "assets/acc/clear_noon_brake_s1_model.jpg"
+  },
+  {
+   "scenario": "stopped",
+   "condition": "clear_noon",
+   "src": "assets/acc/clear_noon_stopped_s1_model.mp4",
+   "poster": "assets/acc/clear_noon_stopped_s1_model.jpg"
+  },
+  {
+   "scenario": "cutin",
+   "condition": "clear_noon",
+   "src": "assets/acc/clear_noon_cutin_s1_model.mp4",
+   "poster": "assets/acc/clear_noon_cutin_s1_model.jpg"
+  }
+ ]
+}

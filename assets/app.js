@@ -1,0 +1,450 @@
+// DriveLoop 결과 페이지: 조건 탭 · 영상 위 오버레이 · 2D 지도 · 타임라인 (의존성 없음)
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const CONDS = ["clear_noon", "rain_noon", "clear_night", "rain_night"];
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const STATE_VAR = { RED: "--tl-red", YELLOW: "--tl-yellow", GREEN: "--tl-green", UNKNOWN: "--tl-unknown" };
+  const CLS_VAR = { vehicle: "--vehicle", tl_red: "--tl-red", tl_yellow: "--tl-yellow", tl_green: "--tl-green" };
+  const SHORT = { vehicle: "car", tl_red: "red", tl_yellow: "yellow", tl_green: "green" };
+
+  const store = {
+    get(k, d) { try { return localStorage.getItem(k) ?? d; } catch { return d; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch { /* 저장 불가 환경 */ } },
+  };
+
+  // ---------- i18n ----------
+  let lang = store.get("dl-lang", (navigator.language || "ko").startsWith("ko") ? "ko" : "en");
+  const t = (k) => (window.I18N[lang] || {})[k] ?? k;
+
+  function applyI18n() {
+    document.documentElement.lang = lang;
+    document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
+    $("#lang").textContent = lang === "ko" ? "EN" : "한국어";
+    renderStatic();
+    renderTabs();
+    renderCondStats();
+    renderLegends();
+    $("#play").textContent = front.paused ? t("ctl.play") : t("ctl.pause");
+    $("#map-mode").textContent = mapFollow ? t("map.full") : t("map.follow");
+    drawAll();
+  }
+  $("#lang").addEventListener("click", () => { lang = lang === "ko" ? "en" : "ko"; store.set("dl-lang", lang); applyI18n(); });
+
+  // ---------- 정적 섹션 ----------
+  function renderStatic() {
+    const best = index.length ? index : [];
+    const redRun = best.reduce((a, c) => a + c.red_run, 0);
+    const color = best.length ? Math.min(...best.map((c) => c.color)) : 1;
+    const infer = best.length ? (best.reduce((a, c) => a + c.infer_ms, 0) / best.length).toFixed(0) : "12";
+    const stats = [
+      [String(redRun), t("stat.redrun")],
+      ["+5.1%p", t("stat.recall")],
+      [`${(color * 100).toFixed(1)}%`, t("stat.color")],
+      [`${infer} ms`, t("stat.infer")],
+    ];
+    if (compare && compare.baseline) stats.splice(3, 0, ["2 → 0", t("stat.safety")]);
+    $("#hero-stats").innerHTML = stats.map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("");
+
+    $("#flow").innerHTML = t("pipe.steps").map(([h, d]) => `<li><b>${h}</b><span>${d}</span></li>`).join("");
+
+    const cols = t("data.cols");
+    $("#data-table").innerHTML = `<thead><tr>${cols.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>` +
+      t("data.rows").map((r) => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td class="up">${r[3]}</td></tr>`).join("") +
+      "</tbody>";
+
+    const k = t("res.k");
+    $("#cases").innerHTML = t("res.cases").map(([h, a, b, c]) =>
+      `<article class="card"><h3>${h}</h3><dl><dt>${k[0]}</dt><dd>${a}</dd><dt>${k[1]}</dt><dd>${b}</dd><dt>${k[2]}</dt><dd>${c}</dd></dl></article>`).join("");
+
+    $("#limits-list").innerHTML = t("lim.items").map((s) => `<li>${s}</li>`).join("");
+    renderCompare();
+    renderAcc();
+    renderPed();
+  }
+
+  // ---------- 보행자 ----------
+  let ped = null;
+  function renderPed() {
+    $("#ped").classList.toggle("hidden", !ped);
+    if (!ped) return;
+    const n = (v, d = 1, unit = "") => v == null ? "-" : `${Number(v).toFixed(d)}${unit}`;
+    const pct = (v) => v == null ? "-" : `${(v * 100).toFixed(1)}%`;
+    const kmh = (v) => v == null ? "-" : `${(v * 3.6).toFixed(0)} km/h`;
+    const fc = t("ped.finalCols"), sc = t("ped.scen"), pc = t("cmp.cols");
+    $("#ped-final").innerHTML = `<thead><tr>${fc.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>` +
+      ped.final.map((r) => {
+        const gt = r.perception === "gt";
+        return `<tr><td>${sc[r.scenario] || r.scenario}</td><td>${gt ? pc[1] : pc[2]}</td><td>${r.collisions}</td>` +
+          `<td>${n(r.min_gap, 1, " m")}</td><td>${r.hard}</td><td>${n(r.max_decel, 1, " m/s²")}</td><td>${kmh(r.min_speed)}</td>` +
+          `<td>${gt ? "-" : pct(r.miss)}</td><td>${gt ? "-" : n(r.first_seen, 0, " m")}</td></tr>`;
+      }).join("") + "</tbody>";
+    const ec = t("ped.evoCols"), what = t("ped.evoWhat");
+    const last = ped.versions.length - 1;
+    $("#ped-evo").innerHTML = `<thead><tr>${ec.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>` +
+      ped.versions.map((v, i) => `<tr><td>${v.name.replace("ped_scen_model_", "")}</td><td>${what[v.name] || ""}</td>` +
+        `<td>${v.collisions}</td><td class="${i === last ? "hl" : ""}">${v.hard_model}</td><td>${v.hard_gt ?? "-"}</td>` +
+        `<td>${n(v.max_decel_model, 1, " m/s²")}</td><td>${n(v.max_decel_gt, 1, " m/s²")}</td><td>${n(v.dart_gap, 1, " m")}</td></tr>`).join("") +
+      "</tbody>";
+    const k = t("ped.caseK");
+    $("#ped-cases").innerHTML = t("ped.cases").map(([h, a, b]) =>
+      `<article class="card"><h3>${h}</h3><dl><dt>${k[1]}</dt><dd>${a}</dd><dt>${k[2]}</dt><dd>${b}</dd></dl></article>`).join("");
+    const names = t("ped.clipNames");
+    $("#ped-clips").innerHTML = (ped.clips || []).map((c) =>
+      `<figure class="clip"><video src="${c.src}" poster="${c.poster || ""}" controls muted playsinline preload="none"></video>` +
+      `<figcaption>${names[c.scenario] || c.scenario} · ${t("cond." + c.condition)}</figcaption></figure>`).join("");
+    const det = ped.detect;
+    $("#ped-det-sub").textContent = det ? t("ped.detSub").replace("{n}", det.images) : "";
+    if (det) {
+      const dc = t("ped.detCols"), cls = t("ped.cls"), r3 = (v) => v.toFixed(3);
+      $("#ped-det").innerHTML = `<thead><tr>${dc.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>` +
+        det.same.map((r) => `<tr><td>${cls[r.cls] || r.cls}</td><td>${r3(r.old)}</td>` +
+          `<td class="${r.new > r.old ? "hl" : ""}">${r3(r.new)}</td><td>${r.old_fp} → ${r.new_fp}</td></tr>`).join("") + "</tbody>";
+      const zc = t("ped.sizeCols");
+      $("#ped-size").innerHTML = `<thead><tr>${zc.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>` +
+        det.ped_size.map((r) => `<tr><td>${r.bin}</td><td>${r3(r.recall)}</td><td>${r.n}</td></tr>`).join("") + "</tbody>";
+    }
+  }
+
+  // ---------- 앞차 따라가기 ----------
+  let acc = null;
+  function renderAcc() {
+    $("#acc").classList.toggle("hidden", !acc);
+    if (!acc) return;
+    const n = (v, d = 2, unit = "") => v == null ? "-" : `${Number(v).toFixed(d)}${unit}`;
+    const pct = (v) => v == null ? "-" : `${(v * 100).toFixed(1)}%`;
+    const fc = t("acc.finalCols"), sc = t("acc.scen"), pc = t("cmp.cols");
+    $("#acc-final").innerHTML = `<thead><tr>${fc.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>` +
+      acc.final.map((r) => `<tr><td>${sc[r.scenario] || r.scenario}</td><td>${r.perception === "gt" ? pc[1] : pc[2]}</td>` +
+        `<td>${r.collisions}</td><td>${n(r.min_gap, 1, " m")}</td><td>${n(r.min_ttc, 1, " s")}</td><td>${r.hard}</td>` +
+        `<td>${n(r.final_gap, 1, " m")}</td><td>${r.perception === "gt" ? "-" : n(r.dist_err, 2, " m")}</td>` +
+        `<td>${r.perception === "gt" ? "-" : pct(r.miss)}</td></tr>`).join("") + "</tbody>";
+    const ec = t("acc.evoCols"), what = t("acc.evoWhat");
+    $("#acc-evo").innerHTML = `<thead><tr>${ec.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>` +
+      acc.versions.map((v, i) => `<tr><td>${v.name.replace("acc_scen_", "")}</td><td>${what[v.name] || ""}</td>` +
+        `<td>${v.collisions}</td><td class="${i ? "hl" : ""}">${v.hard_model}</td><td>${v.hard_gt}</td><td>${n(v.dist_err, 2, " m")}</td>` +
+        `<td>${n(v.speed_err, 2, " m/s")}</td><td>${pct(v.speed_over)}</td><td>${n(v.stopped_ttc, 1, " s")}</td></tr>`).join("") +
+      "</tbody>";
+    const k = t("acc.caseK");
+    $("#acc-cases").innerHTML = t("acc.cases").map(([h, a, b]) =>
+      `<article class="card"><h3>${h}</h3><dl><dt>${k[1]}</dt><dd>${a}</dd><dt>${k[2]}</dt><dd>${b}</dd></dl></article>`).join("");
+    const names = t("acc.clipNames");
+    $("#acc-clips").innerHTML = (acc.clips || []).map((c) =>
+      `<figure class="clip"><video src="${c.src}" poster="${c.poster || ""}" controls muted playsinline preload="none"></video>` +
+      `<figcaption>${names[c.scenario] || c.scenario} · ${t("cond." + c.condition)}</figcaption></figure>`).join("");
+  }
+
+  // ---------- 정답값 vs 내 모델 ----------
+  let compare = null;
+  function renderCompare() {
+    const sec = $("#compare");
+    sec.classList.toggle("hidden", !compare);
+    if (!compare) return;
+    const fmt = (k, v) => v == null ? "-" : k === "decision_agree" ? `${(v * 100).toFixed(1)}%`
+      : k === "start_delay_mean" ? v.toFixed(2) : String(v);
+    const tot = compare.total, gt = tot.gt || {}, md = tot.model || {};
+    const cols = t("cmp.cols");
+    $("#cmp-total").innerHTML = `<thead><tr>${cols.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>` +
+      t("cmp.rows").map(([k, label]) => {
+        const hl = k === "proper_stops" ? ` / ${gt.stops}` : "";
+        return `<tr><td>${label}</td><td>${fmt(k, gt[k])}${hl}</td><td class="hl">${fmt(k, md[k])}${k === "proper_stops" ? ` / ${md.stops}` : ""}</td></tr>`;
+      }).join("") + "</tbody>";
+
+    const cc = t("cmp.condCols");
+    $("#cmp-cond").innerHTML = `<thead><tr>${cc.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>` +
+      compare.by_condition.map((r) => `<tr><td>${t("cond." + r.condition)}</td><td>${r.perception === "gt" ? cols[1] : cols[2]}</td>` +
+        `<td>${r.red_violations}</td><td>${r.proper_stops}/${r.stops}</td><td>${r.false_stops}</td>` +
+        `<td>${r.stop_err_mean.toFixed(2)} m</td><td>${r.start_delay_mean.toFixed(2)} s</td>` +
+        `<td>${(r.decision_agree * 100).toFixed(1)}%</td></tr>`).join("") + "</tbody>";
+
+    const n = md.proper_stops || 0;
+    $("#cmp-note").textContent = t("cmp.note").replaceAll("{n}", n).replace("{ub}", n ? (300 / n).toFixed(1) : "-");
+
+    const fix = compare.baseline && compare.baseline.by_perception && compare.baseline.by_perception.model;
+    $("#cmp-fix").closest(".table-wrap").classList.toggle("hidden", !fix);
+    if (fix) {
+      const fv = (key, v) => v == null ? "-" : key === "brake_need_max" && v >= 99 ? t("cmp.inf")
+        : key === "decision_agree" ? `${(v * 100).toFixed(1)}%` : String(v);
+      const fc = t("cmp.fixCols");
+      $("#cmp-fix").innerHTML = `<thead><tr>${fc.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>` +
+        t("cmp.fixRows").map(([key, label]) => {
+          const [a, b] = fix[key] || [null, null];
+          const better = ["stop_over_line", "brake_need_max"].includes(key) && a != null && b != null && b < a;
+          return `<tr><td>${label}</td><td>${fv(key, a)}</td><td class="${better ? "up" : "hl"}">${fv(key, b)}</td></tr>`;
+        }).join("") + "</tbody>";
+    }
+
+    const k = t("cmp.caseK"), sev = t("cmp.sev");
+    $("#cmp-cases").innerHTML = t("cmp.cases").map(([s, h, a, b, c]) =>
+      `<article class="card"><h3>${h}<span class="sev ${s}">${sev[s]}</span></h3><dl><dt>${k[0]}</dt><dd>${a}</dd>` +
+      `<dt>${k[1]}</dt><dd>${b}</dd><dt>${k[2]}</dt><dd>${c}</dd></dl></article>`).join("");
+  }
+
+  // ---------- 데이터 ----------
+  let index = [], mapData = null, run = null, cond = store.get("dl-cond", "clear_noon");
+  const cache = {};
+  const front = $("#front"), chase = $("#chase");
+
+  async function loadJSON(url) { const r = await fetch(url); if (!r.ok) throw new Error(url); return r.json(); }
+
+  async function selectCond(id) {
+    cond = id;
+    store.set("dl-cond", id);
+    renderTabs();
+    renderCondStats();
+    run = cache[id] || (cache[id] = await loadJSON(`assets/drive/${id}/frames.json`));
+    if (!mapData || mapData.map !== run.meta.map) mapData = await loadJSON(`assets/maps/${run.meta.map}.json`);
+    const wasPlaying = !front.paused;
+    front.poster = `assets/drive/${id}/poster.jpg`;
+    front.src = `assets/drive/${id}/front.mp4`;
+    chase.src = `assets/drive/${id}/chase.mp4`;
+    front.currentTime = 0;
+    buildTimeline();
+    if (wasPlaying) play();
+    drawAll();
+  }
+
+  function renderTabs() {
+    $("#cond-tabs").innerHTML = CONDS.filter((c) => index.some((i) => i.id === c)).map((c) =>
+      `<button class="tab" role="tab" aria-selected="${c === cond}" data-c="${c}">${t("cond." + c)}</button>`).join("");
+    document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => selectCond(b.dataset.c)));
+  }
+
+  function renderCondStats() {
+    const s = index.find((i) => i.id === cond);
+    if (!s) return;
+    const pct = (v) => `${(v * 100).toFixed(1)}%`;
+    $("#cond-stats").innerHTML = [
+      [pct(s.agree), t("cs.agree")], [pct(s.found), t("cs.found")], [pct(s.color), t("cs.color")],
+      [s.red_run, t("cs.redrun")], [s.stops, t("cs.stops")], [s.infer_ms, t("cs.infer")],
+    ].map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("");
+  }
+
+  // ---------- 재생 ----------
+  const fps = () => (run ? run.meta.fps : 20);
+  const frameAt = (sec) => (run ? run.frames[Math.max(0, Math.min(run.frames.length - 1, Math.round(sec * fps())))] : null);
+
+  function play() { front.play(); chase.play(); }
+  $("#play").addEventListener("click", () => (front.paused ? play() : (front.pause(), chase.pause())));
+  front.addEventListener("play", () => { $("#play").textContent = t("ctl.pause"); });
+  front.addEventListener("pause", () => { $("#play").textContent = t("ctl.play"); drawAll(); });
+  front.addEventListener("seeked", () => { chase.currentTime = front.currentTime; drawAll(); });
+
+  function tick() {
+    if (!front.paused) {
+      if (Math.abs(chase.currentTime - front.currentTime) > 0.15) chase.currentTime = front.currentTime;
+      drawAll();
+    }
+    requestAnimationFrame(tick);
+  }
+
+  ["#t-boxes", "#t-expected", "#t-hud"].forEach((s) => $(s).addEventListener("change", drawAll));
+
+  // ---------- 오버레이 ----------
+  const ov = $("#overlay");
+  function fitCanvas(c) {
+    const r = c.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    if (c.width !== Math.round(r.width * dpr) || c.height !== Math.round(r.height * dpr)) {
+      c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr);
+    }
+    const g = c.getContext("2d");
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return [g, r.width, r.height];
+  }
+
+  function drawOverlay(f) {
+    const [g, W, H] = fitCanvas(ov);
+    g.clearRect(0, 0, W, H);
+    $("#hud").classList.toggle("hidden", !$("#t-hud").checked || !f);
+    if (!f || !run) return;
+    // 영상은 contain으로 그려짐 → 실제 영상 영역에 맞춘다
+    const vw = run.meta.width, vh = run.meta.height, s = Math.min(W / vw, H / vh);
+    const ox = (W - vw * s) / 2, oy = (H - vh * s) / 2;
+    const box = (b) => [ox + b[0] * s, oy + b[1] * s, (b[2] - b[0]) * s, (b[3] - b[1]) * s];
+    if ($("#t-expected").checked && f.exp) {
+      g.setLineDash([4, 3]); g.strokeStyle = "#ffffff"; g.lineWidth = 1.5;
+      f.exp.forEach((b) => { const [x, y, w, h] = box(b); g.strokeRect(x - 3, y - 3, w + 6, h + 6); });
+      g.setLineDash([]);
+    }
+    if ($("#t-boxes").checked && f.det) {
+      f.det.forEach((d, i) => {
+        const [x, y, w, h] = box(d.slice(1, 5));
+        g.strokeStyle = css(CLS_VAR[d[0]] || "--tl-unknown");
+        g.lineWidth = i === f.pick ? 3 : 1.5;
+        g.strokeRect(x, y, w, h);
+        if (i === f.pick) {
+          const label = `MY LIGHT ${SHORT[d[0]]} ${d[5].toFixed(2)}`;
+          g.font = "600 12px system-ui, sans-serif";
+          const tw = g.measureText(label).width;
+          g.fillStyle = "rgba(0,0,0,.65)"; g.fillRect(x, y - 18, tw + 8, 16);
+          g.fillStyle = "#fff"; g.fillText(label, x + 4, y - 6);
+        }
+      });
+    }
+    const st = (v) => v || "-";
+    $("#hud").innerHTML =
+      `<span class="k">${t("hud.perc")} </span>${run.meta.perception === "model" ? "MY MODEL (YOLO11n)" : "ground truth"}\n` +
+      `<span class="k">${t("hud.light")} </span><b style="color:${css(STATE_VAR[f.tl] || "--tl-unknown")}">${st(f.tl)}</b>` +
+      `${f.d != null ? `  ${f.d.toFixed(1)} m` : ""}   <span class="k">gt</span> ${st(f.gt)}\n` +
+      `<span class="k">${t("hud.state")} </span>${f.st}\n` +
+      `<span class="k">${t("hud.speed")} </span>${f.v.toFixed(1)} / ${f.vt.toFixed(1)} km/h\n` +
+      `<span class="k">${t("hud.infer")} </span>${f.ms != null ? f.ms.toFixed(1) + " ms" : "-"}  (${f.det ? f.det.length : 0} det)`;
+  }
+
+  // ---------- 2D 지도 ----------
+  const mc = $("#map");
+  let mapFollow = true;
+  $("#map-mode").addEventListener("click", () => {
+    mapFollow = !mapFollow;
+    $("#map-mode").textContent = mapFollow ? t("map.full") : t("map.follow");
+    drawAll();
+  });
+
+  function drawMap(f) {
+    const [g, W, H] = fitCanvas(mc);
+    g.clearRect(0, 0, W, H);
+    if (!mapData || !run || !f) return;
+    g.save();
+    if (mapFollow) {
+      // 내 차 중심, 진행 방향이 위 (CARLA 좌표는 화면 좌표와 같은 손잡이 → 회전만)
+      const scale = Math.min(W, H) / 70;
+      g.translate(W / 2, H * 0.62);
+      g.rotate((-90 - f.yaw) * Math.PI / 180);
+      g.scale(scale, scale);
+      g.translate(-f.x, -f.y);
+    } else {
+      const [x0, y0, x1, y1] = mapData.bbox, s = Math.min(W / (x1 - x0), H / (y1 - y0));
+      g.translate((W - (x1 - x0) * s) / 2, (H - (y1 - y0) * s) / 2);
+      g.scale(s, s);
+      g.translate(-x0, -y0);
+    }
+    const unit = (window.devicePixelRatio || 1) / Math.hypot(g.getTransform().a, g.getTransform().b);   // 화면 1px의 월드 길이
+    g.lineCap = "round"; g.lineJoin = "round";
+    // 차로: 차선 폭만큼 두껍게
+    for (const lane of mapData.lanes) {
+      g.strokeStyle = css(lane.j ? "--road-j" : "--road");
+      g.lineWidth = lane.w * 0.92;
+      g.beginPath();
+      lane.p.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+      g.stroke();
+    }
+    // 경로: 전체(옅게) + 지나온 부분(진하게)
+    const fr = run.frames, cur = fr.indexOf(f);
+    g.lineWidth = 2.2 * unit; g.strokeStyle = css("--trail"); g.globalAlpha = 0.35;
+    g.beginPath(); fr.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y))); g.stroke();
+    g.globalAlpha = 1; g.strokeStyle = css("--accent"); g.lineWidth = 3 * unit;
+    g.beginPath(); for (let i = 0; i <= cur; i += 2) { const p = fr[i]; i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y); } g.stroke();
+    // 정지선: 접근 중이면 실제 신호 색, 아니면 회색
+    for (const s of run.stops) {
+      const active = f.t >= s.t0 && f.t <= s.t1;
+      const a = (s.yaw + 90) * Math.PI / 180, hw = 3.2;
+      g.strokeStyle = active ? css(STATE_VAR[f.gt] || "--tl-unknown") : css("--tl-unknown");
+      g.globalAlpha = active ? 1 : 0.5;
+      g.lineWidth = (active ? 1.2 : 0.7);
+      g.beginPath(); g.moveTo(s.x - Math.cos(a) * hw, s.y - Math.sin(a) * hw); g.lineTo(s.x + Math.cos(a) * hw, s.y + Math.sin(a) * hw); g.stroke();
+    }
+    g.globalAlpha = 1;
+    // 내 차
+    g.save();
+    g.translate(f.x, f.y); g.rotate(f.yaw * Math.PI / 180);
+    const L = mapFollow ? 2.4 : 6 * unit, Wd = mapFollow ? 1.0 : 3 * unit;
+    g.fillStyle = css("--ego"); g.strokeStyle = css("--bg"); g.lineWidth = 0.4 * (mapFollow ? 1 : unit * 2);
+    g.beginPath(); g.moveTo(L, 0); g.lineTo(-L, Wd); g.lineTo(-L * 0.6, 0); g.lineTo(-L, -Wd); g.closePath(); g.fill(); g.stroke();
+    g.restore();
+    g.restore();
+  }
+
+  // ---------- 타임라인 ----------
+  const tc = $("#timeline"), tip = $("#tip");
+  let tlMax = 40;
+  function buildTimeline() { tlMax = Math.max(35, ...run.frames.map((f) => f.v)) * 1.1; }
+
+  function drawTimeline(f) {
+    const [g, W, H] = fitCanvas(tc);
+    g.clearRect(0, 0, W, H);
+    if (!run) return;
+    const fr = run.frames, T = fr[fr.length - 1].t, padL = 78, padR = 8, x = (sec) => padL + (sec / T) * (W - padL - padR);
+    const bandH = 16, rows = [[t("tl.model"), "tl", 4], [t("tl.truth"), "gt", 4 + bandH + 6]];
+    g.font = "12px system-ui, sans-serif"; g.textBaseline = "middle";
+    for (const [label, key, y] of rows) {
+      g.fillStyle = css("--ink-2"); g.fillText(label, 0, y + bandH / 2);
+      let start = 0;
+      for (let i = 1; i <= fr.length; i++) {
+        if (i === fr.length || fr[i][key] !== fr[start][key]) {
+          const v = fr[start][key];
+          if (v) {
+            g.fillStyle = css(STATE_VAR[v] || "--tl-unknown");
+            g.fillRect(x(fr[start].t), y, Math.max(1, x(fr[i - 1].t) - x(fr[start].t) + 1), bandH);
+          }
+          start = i;
+        }
+      }
+    }
+    // 속도 (한 축: km/h)
+    const top = 4 + 2 * bandH + 16, bot = H - 16, y = (v) => bot - (v / tlMax) * (bot - top);
+    g.strokeStyle = css("--line"); g.lineWidth = 1;
+    [0, 10, 20, 30].forEach((v) => { g.beginPath(); g.moveTo(padL, y(v)); g.lineTo(W - padR, y(v)); g.stroke(); g.fillStyle = css("--ink-3"); g.fillText(`${v}`, padL - 22, y(v)); });
+    g.fillStyle = css("--ink-2"); g.fillText(t("tl.speed"), 0, (top + bot) / 2);
+    const line = (key, color, w, dash) => {
+      g.strokeStyle = color; g.lineWidth = w; g.setLineDash(dash);
+      g.beginPath(); fr.forEach((p, i) => (i ? g.lineTo(x(p.t), y(p[key])) : g.moveTo(x(p.t), y(p[key])))); g.stroke(); g.setLineDash([]);
+    };
+    line("vt", css("--ink-3"), 1, [3, 3]);
+    line("v", css("--accent"), 2, []);
+    // 시간 눈금
+    g.fillStyle = css("--ink-3");
+    for (let s = 0; s <= T; s += 30) g.fillText(`${s}s`, x(s) - 8, H - 6);
+    // 재생 위치
+    if (f) {
+      g.strokeStyle = css("--ink"); g.lineWidth = 1.5;
+      g.beginPath(); g.moveTo(x(f.t), 0); g.lineTo(x(f.t), H - 14); g.stroke();
+    }
+    tc._x = { padL, padR, T, W };
+  }
+
+  function timeFromEvent(e) {
+    const r = tc.getBoundingClientRect(), m = tc._x;
+    if (!m) return null;
+    const sec = ((e.clientX - r.left - m.padL) / (r.width - m.padL - m.padR)) * m.T;
+    return sec < 0 || sec > m.T ? null : sec;
+  }
+  tc.addEventListener("click", (e) => { const s = timeFromEvent(e); if (s != null) { front.currentTime = s; } });
+  tc.addEventListener("mousemove", (e) => {
+    const s = timeFromEvent(e), f = s != null && frameAt(s);
+    if (!f) { tip.hidden = true; return; }
+    const r = tc.getBoundingClientRect(), pr = tc.parentElement.getBoundingClientRect();
+    tip.hidden = false;
+    tip.style.left = `${e.clientX - pr.left}px`; tip.style.top = `${r.top - pr.top + 4}px`;
+    tip.innerHTML = `${f.t.toFixed(1)} s · ${t("tl.model")} <b>${f.tl || t("tl.none")}</b> · ${t("tl.truth")} <b>${f.gt || t("tl.none")}</b> · ${f.v.toFixed(0)} km/h`;
+  });
+  tc.addEventListener("mouseleave", () => { tip.hidden = true; });
+
+  function renderLegends() {
+    const sw = (v, label) => `<li><i style="background:${css(v)}"></i>${label}</li>`;
+    $("#tl-legend").innerHTML = sw("--tl-red", "RED") + sw("--tl-yellow", "YELLOW") + sw("--tl-green", "GREEN") +
+      sw("--tl-unknown", t("tl.unknown")) + sw("--accent", t("tl.speed")) + `<li>┄ ${t("tl.target")}</li>`;
+    $("#map-legend").innerHTML = sw("--road", t("lg.road")) + sw("--accent", t("lg.trail")) + sw("--ego", t("lg.ego")) + sw("--tl-red", t("lg.stop"));
+  }
+
+  // ---------- 그리기 ----------
+  function drawAll() {
+    const f = frameAt(front.currentTime || 0);
+    $("#time").textContent = `${(front.currentTime || 0).toFixed(1)} s`;
+    drawOverlay(f);
+    drawMap(f);
+    drawTimeline(f);
+  }
+  window.addEventListener("resize", drawAll);
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { renderLegends(); drawAll(); });
+
+  // ---------- 시작 ----------
+  (async () => {
+    try { index = await loadJSON("assets/drive/index.json"); } catch { index = []; }
+    try { compare = await loadJSON("assets/compare.json"); } catch { compare = null; }
+    try { acc = await loadJSON("assets/acc.json"); } catch { acc = null; }
+    try { ped = await loadJSON("assets/ped.json"); } catch { ped = null; }
+    if (!index.some((i) => i.id === cond)) cond = index[0] ? index[0].id : cond;
+    applyI18n();
+    if (index.length) await selectCond(cond);
+    requestAnimationFrame(tick);
+  })();
+})();

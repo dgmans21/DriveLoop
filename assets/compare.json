@@ -1,0 +1,246 @@
+{
+ "name": "compare_v2",
+ "map": "Town05",
+ "seconds": 120,
+ "seeds": [
+  1,
+  2,
+  3,
+  4,
+  5
+ ],
+ "runs": 40,
+ "total": {
+  "gt": {
+   "red_violations": 0.0,
+   "stops": 52.0,
+   "proper_stops": 52.0,
+   "false_stops": 0.0,
+   "false_brakes": 0.0,
+   "stop_over_line": 0.0,
+   "caution_s": 0.0,
+   "collisions": 0.0,
+   "start_delay_mean": 0.0,
+   "decision_agree": 1.0,
+   "brake_need_max": 1.54
+  },
+  "model": {
+   "red_violations": 0.0,
+   "stops": 52.0,
+   "proper_stops": 52.0,
+   "false_stops": 0.0,
+   "false_brakes": 1.0,
+   "stop_over_line": 0.0,
+   "caution_s": 0.8,
+   "collisions": 0.0,
+   "start_delay_mean": 0.15,
+   "decision_agree": 0.974,
+   "brake_need_max": 1.96
+  }
+ },
+ "baseline": {
+  "name": "compare_v1",
+  "by_perception": {
+   "gt": {
+    "red_violations": [
+     0,
+     0
+    ],
+    "proper_stops": [
+     52,
+     52
+    ],
+    "false_stops": [
+     0,
+     0
+    ],
+    "false_brakes": [
+     0,
+     0
+    ],
+    "stop_over_line": [
+     0,
+     0
+    ],
+    "caution_s": [
+     0.0,
+     0.0
+    ],
+    "collisions": [
+     0,
+     0
+    ],
+    "brake_need_max": [
+     1.54,
+     1.54
+    ],
+    "decision_agree": [
+     1.0,
+     1.0
+    ],
+    "runs": 20
+   },
+   "model": {
+    "red_violations": [
+     0,
+     0
+    ],
+    "proper_stops": [
+     52,
+     52
+    ],
+    "false_stops": [
+     0,
+     0
+    ],
+    "false_brakes": [
+     1,
+     1
+    ],
+    "stop_over_line": [
+     1,
+     0
+    ],
+    "caution_s": [
+     0.0,
+     0.8
+    ],
+    "collisions": [
+     0,
+     0
+    ],
+    "brake_need_max": [
+     99.0,
+     1.96
+    ],
+    "decision_agree": [
+     0.976,
+     0.974
+    ],
+    "runs": 20
+   }
+  }
+ },
+ "by_condition": [
+  {
+   "condition": "clear_noon",
+   "perception": "gt",
+   "runs_n": 5,
+   "red_violations": 0,
+   "stops": 13,
+   "proper_stops": 13,
+   "false_stops": 0,
+   "false_brakes": 0,
+   "stop_over_line": 0,
+   "stop_err_mean": 0.134,
+   "start_delay_mean": 0.0,
+   "decision_agree": 1.0,
+   "collisions": 0
+  },
+  {
+   "condition": "clear_noon",
+   "perception": "model",
+   "runs_n": 5,
+   "red_violations": 0,
+   "stops": 13,
+   "proper_stops": 13,
+   "false_stops": 0,
+   "false_brakes": 1,
+   "stop_over_line": 0,
+   "stop_err_mean": 0.128,
+   "start_delay_mean": 0.15,
+   "decision_agree": 0.954,
+   "collisions": 0
+  },
+  {
+   "condition": "rain_noon",
+   "perception": "gt",
+   "runs_n": 5,
+   "red_violations": 0,
+   "stops": 13,
+   "proper_stops": 13,
+   "false_stops": 0,
+   "false_brakes": 0,
+   "stop_over_line": 0,
+   "stop_err_mean": 0.132,
+   "start_delay_mean": 0.0,
+   "decision_agree": 1.0,
+   "collisions": 0
+  },
+  {
+   "condition": "rain_noon",
+   "perception": "model",
+   "runs_n": 5,
+   "red_violations": 0,
+   "stops": 13,
+   "proper_stops": 13,
+   "false_stops": 0,
+   "false_brakes": 0,
+   "stop_over_line": 0,
+   "stop_err_mean": 0.136,
+   "start_delay_mean": 0.15,
+   "decision_agree": 0.97,
+   "collisions": 0
+  },
+  {
+   "condition": "clear_night",
+   "perception": "gt",
+   "runs_n": 5,
+   "red_violations": 0,
+   "stops": 13,
+   "proper_stops": 13,
+   "false_stops": 0,
+   "false_brakes": 0,
+   "stop_over_line": 0,
+   "stop_err_mean": 0.132,
+   "start_delay_mean": 0.0,
+   "decision_agree": 1.0,
+   "collisions": 0
+  },
+  {
+   "condition": "clear_night",
+   "perception": "model",
+   "runs_n": 5,
+   "red_violations": 0,
+   "stops": 13,
+   "proper_stops": 13,
+   "false_stops": 0,
+   "false_brakes": 0,
+   "stop_over_line": 0,
+   "stop_err_mean": 0.14,
+   "start_delay_mean": 0.15,
+   "decision_agree": 0.987,
+   "collisions": 0
+  },
+  {
+   "condition": "rain_night",
+   "perception": "gt",
+   "runs_n": 5,
+   "red_violations": 0,
+   "stops": 13,
+   "proper_stops": 13,
+   "false_stops": 0,
+   "false_brakes": 0,
+   "stop_over_line": 0,
+   "stop_err_mean": 0.132,
+   "start_delay_mean": 0.0,
+   "decision_agree": 1.0,
+   "collisions": 0
+  },
+  {
+   "condition": "rain_night",
+   "perception": "model",
+   "runs_n": 5,
+   "red_violations": 0,
+   "stops": 13,
+   "proper_stops": 13,
+   "false_stops": 0,
+   "false_brakes": 0,
+   "stop_over_line": 0,
+   "stop_err_mean": 0.13,
+   "start_delay_mean": 0.15,
+   "decision_agree": 0.986,
+   "collisions": 0
+  }
+ ]
+}
