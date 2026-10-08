@@ -7,29 +7,31 @@
     "require_same_labels": true,
     "max_gap_s": 10.0
   },
-  "built_at": "2026-10-06T15:01:16",
+  "built_at": "2026-10-08T13:56:34",
   "frames_before": 4154,
-  "frames_after": 2304,
+  "frames_after": 2305,
   "reasons": {
     "moved": 1969,
-    "duplicate": 1850,
-    "labels_changed": 223,
+    "duplicate": 1849,
+    "labels_changed": 224,
     "image_changed": 78,
     "first": 24,
     "max_gap": 10
   },
   "stopped_frames_before": 2146,
-  "stopped_frames_after": 315,
+  "stopped_frames_after": 316,
   "objects_before": {
-    "n_vehicle": 5576,
+    "n_vehicle": 5614,
     "n_tl_red": 13156,
     "n_tl_yellow": 2697,
-    "n_tl_green": 1614
+    "n_tl_green": 1614,
+    "n_pedestrian": 0
   },
   "objects_after": {
-    "n_vehicle": 2665,
+    "n_vehicle": 2691,
     "n_tl_red": 4529,
     "n_tl_yellow": 825,
-    "n_tl_green": 1112
+    "n_tl_green": 1112,
+    "n_pedestrian": 0
   }
 }

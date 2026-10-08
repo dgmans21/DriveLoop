@@ -182,3 +182,19 @@ def test_ped_metrics_ignore_slowdowns_long_after_passing():
     gaps = [2.0 - 0.2 * i for i in range(n)]
     m = ped_metrics(_ped_log(speeds, gaps, [3.0] * n, [None] * n), 0.05)
     assert m["min_speed_after_cruise"] == pytest.approx(8.0) and m["hard_brakes"] == 0
+
+
+def test_ped_perception_metrics_miss_first_seen_and_errors():
+    from driveloop.eval.driving import ped_perception_metrics
+    n = 40
+    gaps = [30.0 - 0.5 * i for i in range(n)]
+    log = _ped_log([8.0] * n, gaps, [1.0] * n, [None] * 10 + [1] * 30)
+    log["ped_toward"] = 1.0
+    log["p_ped_gap"] = [None] * 10 + [g + 0.5 for g in gaps[10:]]   # 처음 10 tick 놓침, 이후 0.5m 멀게 봄
+    log["p_ped_lat"] = [None] * 10 + [1.2] * 30
+    log["p_ped_toward"] = [None] * 10 + [0.8] * 30
+    m = ped_perception_metrics(log, 0.05)
+    assert m["ped_miss_rate"] == pytest.approx(10 / 40)
+    assert m["first_seen_gap"] == pytest.approx(25.0)
+    assert m["ped_gap_err_med"] == pytest.approx(0.5) and m["ped_lat_err_med"] == pytest.approx(0.2)
+    assert m["ped_toward_err_med"] == pytest.approx(0.2) and m["phantom_yield_s"] == 0

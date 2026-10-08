@@ -1,6 +1,6 @@
 {
-  "dataset": "v1",
-  "built_at": "2026-10-08T13:55:38",
+  "dataset": "v4",
+  "built_at": "2026-10-08T13:56:30",
   "label_rules_version": 5,
   "qc_rules": {
     "version": 1,
@@ -16,21 +16,21 @@
       "max_aspect": 6.0
     }
   },
-  "frames": 2400,
-  "frames_qc_pass": 2393,
+  "frames": 6525,
+  "frames_qc_pass": 6503,
   "frame_flags": {
-    "tl_aspect_odd": 6,
-    "tl_color_mismatch": 2
+    "tl_aspect_odd": 18,
+    "tl_color_mismatch": 4
   },
-  "objects": 7903,
+  "objects": 33629,
   "object_flags": {
-    "tl_aspect_odd": 6,
-    "tl_color_mismatch": 2
+    "tl_aspect_odd": 23,
+    "tl_color_mismatch": 4
   },
   "lamp_color": {
-    "match": 4062,
-    "dark": 231,
-    "saturated": 3,
-    "mismatch": 2
+    "match": 12977,
+    "dark": 635,
+    "saturated": 6,
+    "mismatch": 4
   }
 }

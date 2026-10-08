@@ -67,6 +67,8 @@ class ActorPool:
         for actor in reversed(self._actors):
             if isinstance(actor, carla.Sensor) and actor.is_listening:
                 actor.stop()
+            elif actor.is_alive and actor.type_id == "controller.ai.walker":
+                actor.stop()                     # AI 보행자 컨트롤러는 멈춘 뒤 파괴해야 서버가 정리한다
             if actor.is_alive:
                 actor.destroy()
         self._actors.clear()

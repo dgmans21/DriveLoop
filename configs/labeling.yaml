@@ -1,10 +1,12 @@
 # 자동 라벨링 규칙 (원본 data/raw → 라벨 data/processed)
 # 규칙을 바꾸면 재수집 없이 20_autolabel.py만 다시 실행하면 된다
-version: 4   # v2: max_facing_angle 60 → 70 (각도별 실측 근거)
+version: 5   # v2: max_facing_angle 60 → 70 (각도별 실측 근거)
              # v3: 차량을 세그 인스턴스 기준으로 (주차 차량·자차 옆 차량 포함, 자차 보닛 제외)
              # v4: 기준 미달이지만 보이는 물체를 무시 영역(ignores)으로 출력 → 내보낼 때 회색으로 가림
+             # v5: 보행자 클래스 (세그 태그 12). 오토바이·자전거 운전자(태그 13)를 차량 박스에 포함
+             #     (운전자 픽셀은 탈것과 같은 인스턴스 id — v4 파일럿에서 확인)
 
-classes: [vehicle, tl_red, tl_yellow, tl_green]
+classes: [vehicle, tl_red, tl_yellow, tl_green, pedestrian]   # 기존 클래스 번호 유지 → 보행자는 맨 뒤
 
 vehicle:
   min_visible_px: 150      # 보이는 픽셀 수 (인스턴스 세그에서 이 차량 ID인 픽셀)
@@ -21,3 +23,10 @@ traffic_light:
   max_facing_angle: 70.0
   max_distance: 80.0       # m
   ignore_min_px: 5         # 라벨 기준 미달이어도 이만큼 보이면 무시 영역
+
+pedestrian:
+  # 사람은 가늘다: 30m에서 키 1.8m ≈ 높이 38px · 폭 12px → 차량(150px)보다 낮은 픽셀 기준
+  min_visible_px: 60       # 보이는 픽셀 수
+  min_box_height: 16       # px (60m에서 약 19px)
+  max_distance: 60.0       # m, 판단에 쓰는 거리(경로 50m)보다 조금 멀리까지
+  ignore_min_px: 10        # 라벨 기준 미달이어도 이만큼 보이면 무시 영역

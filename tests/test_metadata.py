@@ -55,3 +55,11 @@ def test_object_row_flags():
     flat_tl = {"cls": "tl_red", "bbox": [10, 10, 40, 15], "actor_id": 2, "depth": 20, "visible_px": 100,
                "visible_ratio": 0.5, "facing_angle": 5, "affects_ego": False}
     assert "tl_aspect_odd" in object_row(flat_tl, img, 100, 100, QCRules())["qc_flags"]
+
+
+def test_pedestrian_is_not_checked_as_traffic_light():
+    img = solid((90, 90, 90), (100, 100))
+    ped = {"cls": "pedestrian", "bbox": [10, 10, 20, 50], "actor_id": 3, "depth": 12.0, "visible_px": 300,
+           "visible_ratio": 0.5, "static": False}
+    row = object_row(ped, img, 100, 100, QCRules())
+    assert row["qc_flags"] == "" and row["lamp_color"] is None     # 세로 비율·불빛 색 검사 대상 아님

@@ -1,0 +1,87 @@
+{
+  "dataset": "v4",
+  "splits": [
+    "train",
+    "val",
+    "test"
+  ],
+  "images": {
+    "train": 6443,
+    "val": 2231,
+    "test": 1735
+  },
+  "objects": {
+    "vehicle": {
+      "train": 9652,
+      "val": 2658,
+      "test": 1903
+    },
+    "tl_red": {
+      "train": 3803,
+      "val": 1567,
+      "test": 4430
+    },
+    "tl_green": {
+      "train": 1300,
+      "val": 554,
+      "test": 1046
+    },
+    "tl_yellow": {
+      "train": 963,
+      "val": 265,
+      "test": 854
+    },
+    "pedestrian": {
+      "train": 5169,
+      "val": 1831,
+      "test": 758
+    }
+  },
+  "tl_small_ratio": 0.256,
+  "tl_size_hist": {
+    "tl_red": {
+      "<8": 97,
+      "8–12": 829,
+      "12–16": 1688,
+      "16–24": 3300,
+      "24–40": 2195,
+      "40+": 1691
+    },
+    "tl_green": {
+      "<8": 28,
+      "8–12": 129,
+      "12–16": 354,
+      "16–24": 914,
+      "24–40": 751,
+      "40+": 724
+    },
+    "tl_yellow": {
+      "<8": 16,
+      "8–12": 268,
+      "12–16": 377,
+      "16–24": 417,
+      "24–40": 556,
+      "40+": 448
+    }
+  },
+  "ignored": {
+    "pedestrian:too_few_px": 7245,
+    "vehicle:too_few_px": 7134,
+    "tl_red:lamp_dark": 846,
+    "vehicle:too_small": 718,
+    "traffic_light:occluded": 627,
+    "pedestrian:too_far": 251,
+    "tl_yellow:lamp_dark": 247,
+    "pedestrian:too_small": 177,
+    "tl_green:lamp_dark": 127,
+    "traffic_light:too_small": 99,
+    "tl_red:qc_flag": 39,
+    "tl_green:qc_flag": 15,
+    "tl_yellow:qc_flag": 13,
+    "traffic_light:too_far": 12,
+    "tl_red:lamp_saturated": 10,
+    "tl_yellow:lamp_saturated": 3
+  },
+  "num_gaps": 0,
+  "gaps": []
+}

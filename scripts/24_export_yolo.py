@@ -88,6 +88,9 @@ def main() -> None:
             keep, ignore = [], [i["bbox"] for i in lab["ignores"]]
             ignored.update(f"{i['cls']}:{i['reason']}" for i in lab["ignores"])
             for o in lab["objects"]:
+                if o["cls"] not in cls_id:              # 이 데이터셋에 없는 클래스 (예: v3 내보내기의 보행자) → 가림
+                    ignore.append(o["bbox"]); ignored[f"{o['cls']}:not_in_classes"] += 1
+                    continue
                 q = obj_qc.get((ep, fr.index, o["actor_id"], o["cls"], o["bbox"][0], o["bbox"][1]), {})
                 obj_flags = (q.get("qc_flags") or "").split(",")
                 if any(f in cfg.ignore_object_flags for f in obj_flags):

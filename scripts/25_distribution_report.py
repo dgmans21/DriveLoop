@@ -15,9 +15,11 @@ import yaml
 
 from driveloop.config import CONFIG_DIR, PROJECT_ROOT
 
-# 색: 의미 대응(차량=파랑, 신호 색=같은 색). 빨강·노랑이 이웃하지 않게 이 순서 고정 (팔레트 검증 통과 순서)
-CLASS_ORDER = ["vehicle", "tl_red", "tl_green", "tl_yellow"]
-CLASS_LABEL = {"vehicle": "차량", "tl_red": "빨간불", "tl_green": "초록불", "tl_yellow": "노란불"}
+# 색: 의미 대응(차량=파랑, 신호 색=같은 색, 보행자=보라). 빨강·노랑이 이웃하지 않게 이 순서 고정 (팔레트 검증 통과 순서)
+# 데이터셋에 없는 클래스(v1~v3의 보행자)는 빼고 그린다 → 없는 클래스가 '부족'으로 잡히지 않게
+ALL_CLASSES = ["vehicle", "tl_red", "tl_green", "tl_yellow", "pedestrian"]
+CLASS_ORDER = list(ALL_CLASSES)
+CLASS_LABEL = {"vehicle": "차량", "tl_red": "빨간불", "tl_green": "초록불", "tl_yellow": "노란불", "pedestrian": "보행자"}
 SIZE_BINS = [0, 8, 12, 16, 24, 40, 10_000]
 SIZE_LABELS = ["<8", "8–12", "12–16", "16–24", "24–40", "40+"]
 SPLIT_ORDER = ["train", "val", "test"]
@@ -46,7 +48,7 @@ def analyze(objs: pd.DataFrame, manifest: pd.DataFrame, export_report: dict, cfg
             split_cls[s] = 0
     cond = (objs.assign(cond=objs.weather + "·" + objs.time)
             .groupby(["cond", "cls", "split"]).size().unstack(fill_value=0))
-    tl = objs[objs.cls != "vehicle"]
+    tl = objs[objs.cls.str.startswith("tl_")]
     small = float((tl.box_h < cfg["small_tl_px"]).mean()) if len(tl) else 0.0
 
     gaps = []
@@ -80,7 +82,7 @@ def analyze(objs: pd.DataFrame, manifest: pd.DataFrame, export_report: dict, cfg
         "tl_small_ratio": round(small, 3),
         "tl_size_hist": {c: dict(zip(SIZE_LABELS, pd.cut(tl[tl.cls == c].box_h, SIZE_BINS, labels=SIZE_LABELS)
                                      .value_counts().reindex(SIZE_LABELS, fill_value=0).astype(int).tolist()))
-                         for c in CLASS_ORDER if c != "vehicle"},
+                         for c in CLASS_ORDER if c.startswith("tl_")},
         "ignored": export_report["ignored"],
         "num_gaps": len(gaps),
         "gaps": gaps,
@@ -94,16 +96,16 @@ def analyze(objs: pd.DataFrame, manifest: pd.DataFrame, export_report: dict, cfg
 CSS = """
 .viz-root{color-scheme:light;--surface-1:#fcfcfb;--surface-2:#f3f2ef;--text-primary:#0b0b0b;
  --text-secondary:#52514e;--text-muted:#7a7974;--grid:#e4e3df;--gap-ring:#fcfcfb;
- --c-vehicle:#2a78d6;--c-tl_red:#e34948;--c-tl_green:#008300;--c-tl_yellow:#eda100;
+ --c-vehicle:#2a78d6;--c-tl_red:#e34948;--c-tl_green:#008300;--c-tl_yellow:#eda100;--c-pedestrian:#8b5cf6;
  --seq-0:#f3f2ef;--seq-1:#cde2fb;--seq-2:#9ec5f4;--seq-3:#6da7ec;--seq-4:#3987e5;--seq-5:#256abf;--seq-6:#184f95;
  --warn:#d03b3b}
 @media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])) .viz-root{color-scheme:dark;
  --surface-1:#1a1a19;--surface-2:#242422;--text-primary:#fff;--text-secondary:#c3c2b7;--text-muted:#9a998f;
- --grid:#383835;--gap-ring:#1a1a19;--c-vehicle:#3987e5;--c-tl_red:#e66767;--c-tl_green:#008300;--c-tl_yellow:#c98500;
+ --grid:#383835;--gap-ring:#1a1a19;--c-vehicle:#3987e5;--c-tl_red:#e66767;--c-tl_green:#008300;--c-tl_yellow:#c98500;--c-pedestrian:#9b72f2;
  --seq-0:#242422;--seq-1:#104281;--seq-2:#184f95;--seq-3:#1c5cab;--seq-4:#256abf;--seq-5:#2a78d6;--seq-6:#3987e5;--warn:#e66767}}
 :root[data-theme="dark"] .viz-root{color-scheme:dark;--surface-1:#1a1a19;--surface-2:#242422;--text-primary:#fff;
  --text-secondary:#c3c2b7;--text-muted:#9a998f;--grid:#383835;--gap-ring:#1a1a19;--c-vehicle:#3987e5;--c-tl_red:#e66767;
- --c-tl_green:#008300;--c-tl_yellow:#c98500;--seq-0:#242422;--seq-1:#104281;--seq-2:#184f95;--seq-3:#1c5cab;
+ --c-tl_green:#008300;--c-tl_yellow:#c98500;--c-pedestrian:#9b72f2;--seq-0:#242422;--seq-1:#104281;--seq-2:#184f95;--seq-3:#1c5cab;
  --seq-4:#256abf;--seq-5:#2a78d6;--seq-6:#3987e5;--warn:#e66767}
 body{margin:0;background:var(--surface-1)}
 .viz-root{background:var(--surface-1);color:var(--text-primary);font:14px/1.5 system-ui,"Malgun Gothic",sans-serif;
@@ -182,7 +184,7 @@ def render(res: dict, cfg: dict) -> str:
     vals = [[res["_cond"].get(f"{cd}|{c}|{s}", 0) for c, s in pairs] for cd in conds]
     flags = [[v < t[CELL_KEY[s]] for v, (c, s) in zip(row, pairs)] for row in vals]
 
-    tl_cls = [c for c in CLASS_ORDER if c != "vehicle"]
+    tl_cls = [c for c in CLASS_ORDER if c.startswith("tl_")]
     size_vals = [[res["tl_size_hist"][c][b] for b in SIZE_LABELS] for c in tl_cls]
     ign = sorted(res["ignored"].items(), key=lambda kv: -kv[1])
     ign_rows = [(k, v, "--text-muted", f"{k}: {v:,}") for k, v in ign]
@@ -226,6 +228,7 @@ def main() -> None:
     manifest = pd.read_parquet(ds / "manifest.parquet")
     export_report = json.loads((ds / "export_report.json").read_text(encoding="utf-8"))
     names = export_report["config"]["classes"]
+    CLASS_ORDER[:] = [c for c in ALL_CLASSES if c in names]
     objs = load_objects(ds, manifest, names, img_h=720)
     res = analyze(objs, manifest, export_report, cfg, all_maps=sorted(manifest["map"].unique()))
 

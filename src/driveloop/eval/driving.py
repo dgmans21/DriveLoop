@@ -167,6 +167,7 @@ def ped_metrics(log: pd.DataFrame, dt: float, body_half: float = 1.3, corridor_h
     out = {
         "min_ped_gap": round(float(log.ped_gap[inside].min()), 2) if inside.any() else None,
         "yield_s": round(float(log.yield_id.notna().sum() * dt), 2),
+        "caution_ped_s": round(float(log.ped_caution.notna().sum() * dt), 2) if "ped_caution" in log else None,
         "min_speed_after_cruise": round(float(log.speed[cruise_idx[0]:].min()), 2) if len(cruise_idx) else None,
         "stop_s": round(float((log.speed[moved[0]:] < 0.1).sum() * dt), 2) if len(moved) else 0.0,
         "restart_delay": None,
@@ -207,6 +208,36 @@ def lead_perception_metrics(log: pd.DataFrame, near: float = 30.0) -> dict:
         out["lead_phantom_rate"] = round(float((p_near & log.lead_dist.isna()).sum() / p_near.sum()), 3)
     return out
 
+
+
+def ped_perception_metrics(log: pd.DataFrame, dt: float, near: float = 30.0, corridor_half: float = 1.5,
+                           margin: float = 1.0) -> dict:
+    """모델이 본 보행자(p_ped_*, 실제 보행자와 2m 안에서 짝지은 것) vs 정답값(ped_*) — C-7.
+
+    - 관련 구간: 실제 보행자가 near m 앞 안이고 통로 근처(통로 반폭 + margin)에 있을 때 = 양보 판단에 쓰일 수 있는 때
+    - 놓침률: 관련 구간에서 모델이 그 보행자를 못 본(짝 없음) 비율
+    - 첫 확정 거리: 모델이 처음 그 보행자를 확정한 순간의 실제 범퍼 간격 (클수록 일찍 봄)
+    - 오차: 둘 다 있을 때 거리·옆 위치·다가오는 속도의 |추정 − 정답| 중앙값
+    - 헛양보: 실제 보행자가 통로에서 멀리(반폭 + 2m 밖) 있는데 양보 중이던 시간
+    """
+    out = {"ped_miss_rate": None, "first_seen_gap": None, "ped_gap_err_med": None, "ped_lat_err_med": None,
+           "ped_toward_err_med": None, "phantom_yield_s": None}
+    if "p_ped_gap" not in log:
+        return out
+    gt_ok = log.ped_gap.notna() & (log.ped_gap > 0)
+    rel = gt_ok & (log.ped_gap <= near) & (log.ped_lat.abs() <= corridor_half + margin)
+    if rel.any():
+        out["ped_miss_rate"] = round(float((rel & log.p_ped_gap.isna()).sum() / rel.sum()), 3)
+    seen = gt_ok & log.p_ped_gap.notna()
+    if seen.any():
+        out["first_seen_gap"] = round(float(log.ped_gap[seen].iloc[0]), 1)
+        both = log[seen]
+        out["ped_gap_err_med"] = round(float((both.p_ped_gap - both.ped_gap).abs().median()), 2)
+        out["ped_lat_err_med"] = round(float((both.p_ped_lat - both.ped_lat).abs().median()), 2)
+        out["ped_toward_err_med"] = round(float((both.p_ped_toward - both.ped_toward).abs().median()), 2)
+    far = gt_ok & (log.ped_lat.abs() > corridor_half + 2.0)
+    out["phantom_yield_s"] = round(float((far & log.yield_id.notna()).sum() * dt), 2)
+    return out
 
 def summarize_run(log: pd.DataFrame, dt: float, stop_margin: float, comfort_decel: float = 2.0,
                   cruise_speed: float = 30 / 3.6) -> dict:

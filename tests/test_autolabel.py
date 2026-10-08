@@ -137,3 +137,40 @@ def test_backside_traffic_light_is_background_not_ignore():
         {**EPISODE["traffic_lights"]["500"]["light_boxes"][0], "yaw": -90}]}}}
     seg = seg_with([(150, 70, 170, 110, 7, 500)])
     assert label_frame_full(frame(lights={"500": "red"}), ep, seg, LabelRules()) == ([], [])
+
+
+def walker(wid=21, x=10.0, y=0.0):
+    return {"id": wid, "transform": {"x": x, "y": y, "z": 0, **ZERO},
+            "bbox": {"x": 0, "y": 0, "z": 0, "ex": 0.3, "ey": 0.3, "ez": 0.9, **ZERO}, "distance": x}
+
+
+def test_visible_pedestrian_gets_tight_box():
+    seg = seg_with([(150, 70, 158, 100, 12, 21)])               # 8x30 = 240px
+    f = frame()
+    f["walkers"] = [walker()]
+    objs = label_frame(f, EPISODE, seg, LabelRules())
+    assert [(o["cls"], o["bbox"]) for o in objs] == [("pedestrian", [150, 70, 158, 100])]
+    assert objs[0]["depth"] == pytest.approx(10.0, abs=0.5)
+
+
+def test_tiny_or_far_pedestrian_becomes_ignore_region():
+    from driveloop.data.autolabel import label_frame_full
+    seg = seg_with([(150, 70, 153, 80, 12, 21),                 # 30px: 너무 적음
+                    (100, 70, 108, 100, 12, 22)])               # 240px지만 70m
+    f = frame()
+    f["walkers"] = [walker(21), walker(22, x=70.0)]
+    objs, ign = label_frame_full(f, EPISODE, seg, LabelRules())
+    assert objs == []
+    assert sorted(i["reason"] for i in ign) == ["too_far", "too_few_px"]
+
+
+def test_old_frames_without_walker_list_still_label():
+    seg = seg_with([(140, 80, 180, 100, 14, 7)])
+    assert len(label_frame(frame([vehicle()]), EPISODE, seg, LabelRules())) == 1   # 'walkers' 키 없음
+
+
+def test_motorcycle_rider_is_part_of_vehicle_box():
+    seg = seg_with([(140, 85, 180, 100, 18, 7),                 # 오토바이
+                    (150, 60, 165, 85, 13, 7)])                 # 같은 id의 운전자 (태그 13)
+    objs = label_frame(frame([vehicle()]), EPISODE, seg, LabelRules())
+    assert [(o["cls"], o["bbox"]) for o in objs] == [("vehicle", [140, 60, 180, 100])]

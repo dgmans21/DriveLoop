@@ -1,0 +1,43 @@
+# 데이터셋 v4 = 원본 v1~v4 + 보행자 클래스 (C-4). v1~v3에는 보행자가 0명 → 기존 라벨 그대로 유효
+# 클래스 번호는 v3와 같게 두고 보행자를 맨 뒤에 (모델 인지 코드의 클래스 이름 매핑이 그대로 동작)
+# test는 같은 Town05 (원본 v2 + 원본 v4의 보행자 장면) → 신호등 성능은 v3 모델과 같은 시험지로도 비교 가능
+name: v4
+sources: [v1, v2, v3, v4]
+classes: [vehicle, tl_red, tl_yellow, tl_green, pedestrian]
+
+test_maps: [Town05]
+
+# 에피소드 단위 분할. v1~v3 검증 에피소드는 그대로, 원본 v4에서 맵마다 2개 (날씨×시간 4조합이 맵 두 곳씩)
+val_episodes:
+  # 원본 v1
+  - Town01_clear_noon_high_r0
+  - Town03_clear_night_low_r0
+  - Town03_rain_noon_high_r0
+  - Town01_rain_night_low_r0
+  # 원본 v2
+  - Town03_clear_noon_low_r1
+  - Town01_clear_night_high_r1
+  - Town01_rain_noon_low_r1
+  - Town03_rain_night_high_r1
+  # 원본 v3
+  - Town02_clear_noon_low_r0
+  - Town02_rain_night_low_r0
+  - Town04_clear_night_high_r0
+  - Town04_rain_noon_high_r0
+  # 원본 v4 (보행자)
+  - Town01_clear_noon_low_r2
+  - Town01_rain_night_high_r2
+  - Town02_clear_night_high_r2
+  - Town02_rain_noon_low_r2
+  - Town03_clear_noon_high_r2
+  - Town03_rain_night_low_r2
+  - Town04_clear_night_low_r2
+  - Town04_rain_noon_high_r2
+
+use_dedup: true
+drop_frame_flags: [blank_image, wrong_image_size]
+ignore_object_flags: [tl_color_mismatch, tl_aspect_odd]
+ignore_lamp_color: [dark, saturated]
+ignore_fill: [114, 114, 114]
+ignore_pad_px: 2
+jpeg_quality: 95

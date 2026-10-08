@@ -1,7 +1,7 @@
 {
   "dataset": "v3",
-  "built_at": "2026-10-06T23:26:22",
-  "label_rules_version": 4,
+  "built_at": "2026-10-08T13:56:06",
+  "label_rules_version": 5,
   "qc_rules": {
     "version": 1,
     "image": {
@@ -22,7 +22,7 @@
     "tl_aspect_odd": 6,
     "tl_color_mismatch": 1
   },
-  "objects": 7717,
+  "objects": 7792,
   "object_flags": {
     "tl_aspect_odd": 6,
     "tl_color_mismatch": 2

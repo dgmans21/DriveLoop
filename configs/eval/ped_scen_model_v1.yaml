@@ -1,0 +1,19 @@
+# C-7: 보행자 시나리오 — 정답값 인지 vs 내 모델(v4_base) 인지 (scripts/53_ped_scenarios.py)
+# 시나리오 정의는 src/driveloop/eval/scenarios.py (PED_SCENARIOS: cross / stop / dartout / sidewalk / curb)
+# 모델은 날씨 영향을 받으므로 4개 날씨. 첫 실행은 시드 1 (위치 1곳) → 결과 보고 시드 확대
+name: ped_scen_model_v1
+map: Town05
+conditions:
+  - [clear, noon]
+  - [rain, noon]
+  - [clear, night]
+  - [rain, night]
+conditions_source: configs/collection/v3.yaml
+scenarios: [cross, stop, dartout, sidewalk, curb]
+seeds: [1]
+seconds: 30
+perceptions: [gt, model]
+walker_blueprint: walker.pedestrian.0001
+weights: runs/detect/v4_base/weights/best.pt
+conf: 0.10
+output_root: outputs/compare

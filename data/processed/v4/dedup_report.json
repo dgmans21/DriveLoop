@@ -1,0 +1,37 @@
+{
+  "dataset": "v4",
+  "rules": {
+    "version": 1,
+    "max_move_m": 0.5,
+    "max_hamming": 4,
+    "require_same_labels": true,
+    "max_gap_s": 10.0
+  },
+  "built_at": "2026-10-08T13:56:36",
+  "frames_before": 6525,
+  "frames_after": 4824,
+  "reasons": {
+    "moved": 3969,
+    "duplicate": 1701,
+    "labels_changed": 701,
+    "image_changed": 111,
+    "first": 40,
+    "max_gap": 3
+  },
+  "stopped_frames_before": 2504,
+  "stopped_frames_after": 820,
+  "objects_before": {
+    "n_vehicle": 8676,
+    "n_tl_red": 10100,
+    "n_tl_yellow": 2107,
+    "n_tl_green": 1415,
+    "n_pedestrian": 11331
+  },
+  "objects_after": {
+    "n_vehicle": 6035,
+    "n_tl_red": 4449,
+    "n_tl_yellow": 1181,
+    "n_tl_green": 1079,
+    "n_pedestrian": 7758
+  }
+}

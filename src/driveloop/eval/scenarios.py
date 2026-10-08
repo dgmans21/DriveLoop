@@ -94,7 +94,8 @@ def blend_paths(a: Sequence[Point], b: Sequence[Point], w: float) -> list[Point]
 #   stop     : 같은 출발, 내 차선 가운데(u=0)에서 8초 멈춘 뒤 마저 건넘 → 정지 간격·대기·재출발
 #   dartout  : 60m 앞 차선 끝 바로 밖(+0.35m, 주차 차 사이 같은 위치)에서 18m 남았을 때 3 m/s로 뛰어듦
 #   sidewalk : 40m 앞 보도(경계 +1.5m)를 나를 향해 1.4 m/s로 걸음 → 감속하면 안 됨
-#   curb     : 40m 앞 차선 끝 +0.5m(갓길)에 계속 서 있음 → 감속하면 안 됨
+#   curb     : 40m 앞 차선 끝 +0.5m(갓길, 차도 위)에 계속 서 있음 → 양보(정지)하면 안 됨. C-7 v3부터는 '차도 위 가장자리'
+#              보행자라 옆을 지날 때 주의 서행 (planning/pedestrian.py caution) — 보도 위(sidewalk)는 감속 0 그대로
 
 CROSS_END_U = -5.0             # m, 건너는 보행자는 차선 중심 반대쪽 5m(옆 차선 너머)에서 멈춘다
 

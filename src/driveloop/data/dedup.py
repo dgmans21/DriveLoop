@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from driveloop.config import load_config
 from driveloop.data.metadata import hamming
 
-LABEL_KEYS = ("n_vehicle", "n_tl_red", "n_tl_yellow", "n_tl_green")
+LABEL_KEYS = ("n_vehicle", "n_tl_red", "n_tl_yellow", "n_tl_green", "n_pedestrian")
 
 
 @dataclass
@@ -38,7 +38,7 @@ def dedup_episode(frames: list[dict], rules: DedupRules) -> list[dict]:
             continue
         move = math.hypot(f["ego_x"] - rep["ego_x"], f["ego_y"] - rep["ego_y"])
         ham = hamming(f["dhash"], rep["dhash"])
-        same_labels = all(f[k] == rep[k] for k in LABEL_KEYS)
+        same_labels = all(f.get(k, 0) == rep.get(k, 0) for k in LABEL_KEYS)
         gap = f["t"] - rep["t"]
         if move >= rules.max_move_m:
             reason = "moved"

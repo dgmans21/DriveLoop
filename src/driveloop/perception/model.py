@@ -10,6 +10,11 @@
   5) 차량 검출(신뢰도 ≥ lead_min_conf)의 박스 아래 가운데 점 → 바닥선 거리(mono_distance) + 좌우 위치 → 월드 좌표
   6) 정답값과 같은 find_lead로 내 경로 위 가장 가까운 차 → LeadTracker로 확정(2프레임)·속도 추정
 
+보행자 (C-7, 카메라만):
+  7) 보행자 검출(신뢰도 ≥ ped_min_conf)의 발 점(박스 아래 가운데) → 같은 광선·도로 높이 방법 → 월드 좌표
+  8) PedestrianTracker로 여러 명 확정(2프레임)·위치·속도 추정 → PerceptionOutput.pedestrians
+     (양보 여부는 판단 planning/pedestrian.py가 정한다 — 정답값 인지와 같은 입력 형식)
+
 판단·제어 코드는 PerceptionOutput만 보므로 그대로 재사용된다.
 """
 from __future__ import annotations
@@ -25,6 +30,7 @@ from driveloop.perception.association import (Association, Detection, TemporalVo
 from driveloop.perception.ground_truth import GroundTruthPerception
 from driveloop.perception.lead import LeadTracker, Obstacle, find_lead
 from driveloop.perception.mono_distance import ground_distance, ray_road_hit
+from driveloop.perception.pedestrian_track import PedestrianTracker
 from driveloop.perception.types import PerceptionOutput, TLState
 from driveloop.planning.route import RoutePlanner
 from driveloop.sim.sensors import image_to_rgb
@@ -42,6 +48,8 @@ class ModelDebug:
     infer_ms: float = 0.0
     lead_det: Detection | None = None      # 앞차로 고른 차량 검출 (이번 프레임 측정)
     lead_measured: float | None = None     # 그 검출의 바닥선 거리 → 범퍼 간격 (추적 전)
+    ped_dets: list[Detection] = field(default_factory=list)            # 위치를 잰 보행자 검출
+    ped_points: list[tuple[float, float]] = field(default_factory=list)  # 그 발 위치 (월드 x, y, 추적 전)
 
 
 _MODELS: dict[str, object] = {}
@@ -61,7 +69,7 @@ class ModelPerception:
                  conf: float = 0.10, imgsz: int = 1280, voter: TemporalVoter | None = None, *,
                  lead_lookahead: float = 50.0, lane_half_width: float = 1.75, cam_height: float = 1.556,
                  lead_min_conf: float = 0.3, dt: float = 0.05, road_aware: bool = True,
-                 ground_offset: float = 0.144) -> None:
+                 ground_offset: float = 0.144, ped_min_conf: float = 0.3, ped_ground_offset: float = 0.0) -> None:
         self._map = GroundTruthPerception(world, ego, route, lookahead)
         self._ego, self._route = ego, route
         self._front_offset = ego.bounding_box.extent.x
@@ -69,6 +77,9 @@ class ModelPerception:
         self._cam_height, self._lead_min_conf = cam_height, lead_min_conf
         self._road_aware, self._ground_offset = road_aware, ground_offset
         self._tracker = LeadTracker(dt)
+        # 보행자 발 점 = 신발 바닥 ≈ 실제 접지점 (차량 박스 아래 변은 타이어 접지보다 살짝 위 → 0.144)
+        self._ped_min_conf, self._ped_ground_offset = ped_min_conf, ped_ground_offset
+        self._ped_tracker = PedestrianTracker(dt)
         self._camera = camera
         self._W, self._H = width, height
         self._K = np.array(camera_intrinsics(width, height, fov))
@@ -96,12 +107,15 @@ class ModelPerception:
         v = self._ego.get_velocity()
         lead = self._tracker.update(measured, (v.x ** 2 + v.y ** 2) ** 0.5)
         lead_kw = dict(lead_distance=lead.distance, lead_speed=lead.speed, lead_id=lead.id) if lead else {}
+        ped_dets, ped_points = self._measure_pedestrians(dets)
+        lead_kw["pedestrians"] = self._ped_tracker.update(ped_points)
 
         nearest = self._map.nearest_light()
         if nearest is None:
             self._voter.reset()
             self._current_tl = None
-            self.debug = ModelDebug(detections=dets, infer_ms=infer_ms, lead_det=lead_det, lead_measured=measured)
+            self.debug = ModelDebug(detections=dets, infer_ms=infer_ms, lead_det=lead_det, lead_measured=measured,
+                                    ped_dets=ped_dets, ped_points=ped_points)
             return PerceptionOutput(**lead_kw)
         tl, dist = nearest
         if tl.id != self._current_tl:   # 다음 신호등으로 넘어가면 이전 신호의 투표를 버린다
@@ -112,7 +126,8 @@ class ModelPerception:
         assoc = associate(expected, dets)
         raw = assoc.state if assoc else None
         voted = self._voter.update(raw)
-        self.debug = ModelDebug(dets, expected, assoc, raw, voted, tl.id, infer_ms, lead_det, measured)
+        self.debug = ModelDebug(dets, expected, assoc, raw, voted, tl.id, infer_ms, lead_det, measured,
+                                ped_dets, ped_points)
         return PerceptionOutput(TLState(voted), dist, **lead_kw)
 
     def _measure_lead(self, dets: list[Detection]) -> tuple[Detection | None, float | None]:
@@ -122,33 +137,15 @@ class ModelPerception:
           카메라 자세(위치·pitch 포함)는 시뮬레이터 값 = 완벽한 측위 + IMU 가정
         아니면: 평평한 도로 가정의 바닥선 거리 (B-4, 오르막에서 멀게 봄 → acc_scen_v3 정차 차량을 20m에서야 인식)
         """
-        fx, fy, cx, cy = self._K[0, 0], self._K[1, 1], self._K[0, 2], self._K[1, 2]
-        tf = self._camera.get_transform()
-        fwd, right, up = tf.get_forward_vector(), tf.get_right_vector(), tf.get_up_vector()
-        road = [(w.transform.location.x, w.transform.location.y, w.transform.location.z)
-                for w in self._route.waypoints] if self._road_aware else None
+        frame = self._camera_frame()
         cands, obstacles = [], []
         for d in dets:
             if d.cls != "vehicle" or d.conf < self._lead_min_conf:
                 continue
-            x1, _, x2, y2 = d.box
-            u, v = (x1 + x2) / 2, min(y2, self._H)
-            if road is not None:
-                a, b = (u - cx) / fx, -(v - cy) / fy               # 카메라 좌표: x 앞, y 오른쪽, z 위
-                ray = (fwd.x + right.x * a + up.x * b, fwd.y + right.y * a + up.y * b, fwd.z + right.z * a + up.z * b)
-                hit = ray_road_hit((tf.location.x, tf.location.y, tf.location.z), ray, road,
-                                   max_dist=self._lead_lookahead + 15.0, ground_offset=self._ground_offset)
-                if hit is None:
-                    continue
-                wx, wy = hit[0], hit[1]
-            else:
-                z = ground_distance(v, fy, cy, self._cam_height)
-                if z is None:
-                    continue
-                x = (u - cx) * z / fx
-                wx = tf.location.x + fwd.x * z + right.x * x
-                wy = tf.location.y + fwd.y * z + right.y * x
-            obstacles.append(Obstacle(len(cands), wx, wy, half_length=0.0))   # 점 = 차 뒷면 → 길이 보정 없음
+            hit = self._ground_point(d, frame, self._ground_offset)
+            if hit is None:
+                continue
+            obstacles.append(Obstacle(len(cands), hit[0], hit[1], half_length=0.0))   # 점 = 차 뒷면 → 길이 보정 없음
             cands.append(d)
         if not obstacles:
             return None, None
@@ -158,3 +155,40 @@ class ModelPerception:
         if lead is None:
             return None, None
         return cands[lead.id], max(0.0, lead.distance)
+
+    def _measure_pedestrians(self, dets: list[Detection]) -> tuple[list[Detection], list[tuple[float, float]]]:
+        """보행자 검출 → 발 점의 월드 위치 (앞차와 같은 광선 ∩ 도로 높이). 추적·양보 판단은 뒤에서."""
+        frame = self._camera_frame()
+        used, points = [], []
+        for d in dets:
+            if d.cls != "pedestrian" or d.conf < self._ped_min_conf:
+                continue
+            hit = self._ground_point(d, frame, self._ped_ground_offset)
+            if hit is not None:
+                used.append(d)
+                points.append(hit)
+        return used, points
+
+    def _camera_frame(self):
+        tf = self._camera.get_transform()
+        road = [(w.transform.location.x, w.transform.location.y, w.transform.location.z)
+                for w in self._route.waypoints] if self._road_aware else None
+        return tf, tf.get_forward_vector(), tf.get_right_vector(), tf.get_up_vector(), road
+
+    def _ground_point(self, d: Detection, frame, ground_offset: float) -> tuple[float, float] | None:
+        """박스 아래 가운데 점 → 월드 (x, y). road_aware면 카메라 광선 ∩ 지도 도로 높이, 아니면 평면 바닥선."""
+        fx, fy, cx, cy = self._K[0, 0], self._K[1, 1], self._K[0, 2], self._K[1, 2]
+        tf, fwd, right, up, road = frame
+        x1, _, x2, y2 = d.box
+        u, v = (x1 + x2) / 2, min(y2, self._H)
+        if road is not None:
+            a, b = (u - cx) / fx, -(v - cy) / fy               # 카메라 좌표: x 앞, y 오른쪽, z 위
+            ray = (fwd.x + right.x * a + up.x * b, fwd.y + right.y * a + up.y * b, fwd.z + right.z * a + up.z * b)
+            hit = ray_road_hit((tf.location.x, tf.location.y, tf.location.z), ray, road,
+                               max_dist=self._lead_lookahead + 15.0, ground_offset=ground_offset)
+            return None if hit is None else (hit[0], hit[1])
+        z = ground_distance(v, fy, cy, self._cam_height)
+        if z is None:
+            return None
+        x = (u - cx) * z / fx
+        return (tf.location.x + fwd.x * z + right.x * x, tf.location.y + fwd.y * z + right.y * x)

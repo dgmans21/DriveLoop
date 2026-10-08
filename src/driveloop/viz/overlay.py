@@ -10,9 +10,10 @@ import cv2
 import numpy as np
 
 # RGB. 차량=파랑, 신호 색=같은 색 (리포트·검출 영상과 동일)
-COLORS = {"vehicle": (42, 120, 214), "tl_red": (227, 73, 72), "tl_yellow": (237, 161, 0), "tl_green": (0, 170, 0)}
+COLORS = {"vehicle": (42, 120, 214), "tl_red": (227, 73, 72), "tl_yellow": (237, 161, 0), "tl_green": (0, 170, 0),
+          "pedestrian": (139, 92, 246)}   # 보라 (분포 리포트와 같은 색)
 STATE_RGB = {"RED": (227, 73, 72), "YELLOW": (237, 161, 0), "GREEN": (0, 170, 0), "UNKNOWN": (170, 170, 170)}
-SHORT = {"vehicle": "car", "tl_red": "red", "tl_yellow": "yellow", "tl_green": "green"}
+SHORT = {"vehicle": "car", "tl_red": "red", "tl_yellow": "yellow", "tl_green": "green", "pedestrian": "ped"}
 
 
 def _text(img, text, org, scale=0.55, color=(255, 255, 255), thick=1):

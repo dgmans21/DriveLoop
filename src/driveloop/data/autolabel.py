@@ -10,6 +10,9 @@
 모델이 '보이는 차/신호등 = 배경'으로 잘못 배우지 않게 한다 (규칙 v4).
 신호등: 헤드 3D 박스를 투영한 영역 안에서 이 신호등 ID 픽셀들의 외접 박스.
         헤드 정면(+y축)이 카메라를 향하지 않으면 색이 안 보이므로 제외.
+보행자: 세그 태그 12(Pedestrian) 인스턴스의 외접 박스 (v4 데이터로 actor id 일치 확인). 사람은 가늘어서
+        차량보다 작은 픽셀 기준. 오토바이·자전거 운전자(태그 13 Rider)는 탈것과 같은 인스턴스 id
+        → 차량 박스에 포함 (규칙 v5. v4까지는 운전자가 빠진 오토바이 박스)
 """
 from __future__ import annotations
 
@@ -22,7 +25,8 @@ from driveloop.config import load_config
 from driveloop.data.geometry import box_corners, box_to_2d, rotation_matrix, transform_matrix
 
 TL_TAG = 7
-VEHICLE_TAGS = (14, 15, 16, 18, 19)   # Car, Truck, Bus, Motorcycle, Bicycle
+PEDESTRIAN_TAG = 12
+VEHICLE_TAGS = (13, 14, 15, 16, 18, 19)   # Rider, Car, Truck, Bus, Motorcycle, Bicycle
 TL_CLASS = {"red": "tl_red", "yellow": "tl_yellow", "green": "tl_green"}
 
 
@@ -45,11 +49,20 @@ class TrafficLightRules:
 
 
 @dataclass
+class PedestrianRules:
+    min_visible_px: int = 60
+    min_box_height: float = 16
+    max_distance: float = 60.0
+    ignore_min_px: int = 10
+
+
+@dataclass
 class LabelRules:
-    version: int = 4
-    classes: list[str] = field(default_factory=lambda: ["vehicle", "tl_red", "tl_yellow", "tl_green"])
+    version: int = 5
+    classes: list[str] = field(default_factory=lambda: ["vehicle", "tl_red", "tl_yellow", "tl_green", "pedestrian"])
     vehicle: VehicleRules = field(default_factory=VehicleRules)
     traffic_light: TrafficLightRules = field(default_factory=TrafficLightRules)
+    pedestrian: PedestrianRules = field(default_factory=PedestrianRules)
 
 
 def load_rules(path) -> LabelRules:
@@ -143,6 +156,37 @@ def label_frame_full(frame: dict, episode: dict, seg: np.ndarray, rules: LabelRu
             "depth": None if depth is None else round(depth, 2),
             "base_type": actor["base_type"] if actor else None,
             "static": actor is None,   # 맵 배경 소품 (주차 차량)
+        })
+
+    pr = rules.pedestrian
+    walkers = {w["id"]: w for w in frame.get("walkers", [])}     # v1~v3 기록에는 보행자 목록이 없다 (0명)
+    ped_inst = np.where(tag == PEDESTRIAN_TAG, inst, -1)
+    ids, counts = np.unique(ped_inst[ped_inst >= 0], return_counts=True)
+    for pid, visible in zip(ids.tolist(), counts.tolist()):
+        if visible < pr.ignore_min_px:
+            continue
+        box = _tight_box(ped_inst == pid)
+        actor = walkers.get(pid)
+        depth, ratio = None, None
+        if actor is not None:
+            m = transform_matrix(actor["transform"])
+            proj = box_to_2d(box_corners(actor["bbox"]) @ m[:3, :3].T + m[:3, 3], cam_tf, K, W, H)
+            if proj is not None:
+                (px1, py1, px2, py2), depth = proj
+                ratio = round(visible / max(1.0, (px2 - px1) * (py2 - py1)), 3)
+            else:
+                depth = actor["distance"]
+        reason = ("too_few_px" if visible < pr.min_visible_px else
+                  "too_far" if depth is not None and depth > pr.max_distance else
+                  "too_small" if box[3] - box[1] < pr.min_box_height else None)
+        if reason:
+            ignores.append(_ignore(box, "pedestrian", reason, pid))
+            continue
+        objects.append({
+            "cls": "pedestrian", "bbox": [round(c, 1) for c in box], "actor_id": pid,
+            "visible_px": visible, "visible_ratio": ratio,
+            "depth": None if depth is None else round(depth, 2),
+            "static": actor is None,
         })
 
     tr = rules.traffic_light

@@ -1,0 +1,16 @@
+# 보행자 클래스 추가 (C-5): v3_base와 학습 설정을 완전히 같게 두고 데이터셋만 v3 → v4
+# → 신호등·차량 성능 차이 = 클래스·데이터 추가의 영향 (떨어지면 안 됨), 보행자는 새 지표
+# 회차로 나눠 실행: --stop-after 10 으로 10 epoch마다 멈추고 --resume 으로 이어감
+name: v4_base
+dataset: v4
+model: yolo11n.pt          # COCO 사전학습 (v3_base 가중치에서 이어 학습하지 않음)
+epochs: 60                 # v3_base와 동일. 마지막 10 epoch는 mosaic 끔 (ultralytics 기본 close_mosaic=10)
+imgsz: 1280
+batch: 8
+workers: 4                 # 8은 Windows 커밋 한도로 OOM (v2_base 주석 참고)
+seed: 0
+device: 0
+
+extra:
+  patience: 15
+  plots: true

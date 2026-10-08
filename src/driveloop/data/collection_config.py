@@ -47,6 +47,12 @@ class CollectionConfig:
     traffic_light_timing: TrafficLightTiming | None = None   # None이면 맵 기본값 유지
     yellow_capture_interval: float | None = None             # 노란불이 보이면 이 간격으로 저장 (None=끔)
     yellow_max_facing_angle: float = 70.0                    # '보인다' 판정 = 라벨러와 같은 기준
+    walkers: dict[str, int] = field(default_factory=dict)    # 교통량 단계별 보행자 수 (v4~). 없으면 0명 (v1~v3)
+    walker_cross_factor: float = 0.3                         # 보행자가 차도를 건너는 비율 (CARLA 기본 0)
+    walker_running: float = 0.1                              # 뛰는 보행자 비율
+
+    def walker_count(self, traffic: str) -> int:
+        return self.walkers.get(traffic, 0)
 
     @property
     def output_dir(self) -> Path:

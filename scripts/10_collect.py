@@ -27,7 +27,7 @@ from driveloop.data.snapshot import (camera_intrinsics, frame_snapshot, traffic_
 from driveloop.data.writer import EpisodeWriter, is_complete
 from driveloop.sim.client import ActorPool, connect, spawn_ego, synchronous_mode
 from driveloop.sim.sensors import get_frame, image_to_rgb
-from driveloop.sim.traffic import spawn_npc_vehicles, traffic_light_timing, traffic_manager
+from driveloop.sim.traffic import spawn_npc_vehicles, spawn_npc_walkers, traffic_light_timing, traffic_manager
 from driveloop.sim.weather import apply_weather, weather_to_dict
 
 TM_PORT = 8000
@@ -59,6 +59,10 @@ def run_episode(client, world, tm, cfg: CollectionConfig, spec: EpisodeSpec, sim
         npc_ids = spawn_npc_vehicles(client, world, tm, cfg.traffic[spec.traffic], rng)
         for actor in world.get_actors(npc_ids):
             pool.add(actor)
+        walker_ids, ctrl_ids = spawn_npc_walkers(client, world, cfg.walker_count(spec.traffic), rng,
+                                                 cfg.walker_cross_factor, cfg.walker_running, spec.seed)
+        for actor in list(world.get_actors(walker_ids)) + list(world.get_actors(ctrl_ids)):
+            pool.add(actor)                      # 컨트롤러가 나중에 추가 → 먼저 정리(stop)된다
         ego.set_autopilot(True, tm.get_port())
         tm.ignore_lights_percentage(ego, 0)
         tm.update_vehicle_lights(ego, True)
@@ -113,6 +117,8 @@ def run_episode(client, world, tm, cfg: CollectionConfig, spec: EpisodeSpec, sim
                 "seed": spec.seed,
                 "spawn_point": spawn_idx,
                 "npc_vehicles": len(npc_ids),
+                "npc_walkers": len(walker_ids),
+                "walker_cross_factor": cfg.walker_cross_factor if walker_ids else None,
                 "weather": weather_to_dict(world.get_weather()),
                 "weather_config": params,
                 "camera": {"width": cfg.camera.width, "height": cfg.camera.height, "fov": cfg.camera.fov,
@@ -130,7 +136,8 @@ def run_episode(client, world, tm, cfg: CollectionConfig, spec: EpisodeSpec, sim
                 "collected_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
                 "wall_seconds": round(wall, 1),
             })
-    return {"frames": writer.count, "wall": wall, "npc": len(npc_ids), "yellow": reasons["yellow"]}
+    return {"frames": writer.count, "wall": wall, "npc": len(npc_ids), "walkers": len(walker_ids),
+            "yellow": reasons["yellow"]}
 
 
 def main() -> None:
@@ -154,7 +161,7 @@ def main() -> None:
     print(f"[plan] dataset={cfg.name} 전체 {len(specs)}개 중 수집할 에피소드 {len(todo)}개 → {cfg.output_dir}")
     print(f"       프레임 {frames}장, 시뮬레이션 {sim_min:.0f}분, 디스크 약 {frames * EST_MB_PER_FRAME / 1024:.1f}GB")
     for s in todo:
-        print(f"       - {s.episode_id}  (seed {s.seed}, NPC {cfg.traffic[s.traffic]})")
+        print(f"       - {s.episode_id}  (seed {s.seed}, NPC {cfg.traffic[s.traffic]}, 보행자 {cfg.walker_count(s.traffic)})")
     if args.dry_run or not todo:
         return
 
@@ -171,7 +178,8 @@ def main() -> None:
                 done += 1
                 print(f"[{done}/{len(todo)}] {spec.episode_id} ...", flush=True)
                 stats = run_episode(client, world, tm, cfg, spec, sim_cfg)
-                print(f"        {stats['frames']}장 저장 (노란불 추가 {stats['yellow']}), NPC {stats['npc']}대, {stats['wall']:.0f}초 "
+                print(f"        {stats['frames']}장 저장 (노란불 추가 {stats['yellow']}), NPC {stats['npc']}대, "
+                      f"보행자 {stats['walkers']}명, {stats['wall']:.0f}초 "
                       f"({stats['frames'] / stats['wall']:.1f} 장/초)", flush=True)
     print("[done]")
 

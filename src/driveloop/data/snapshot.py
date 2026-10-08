@@ -77,6 +77,21 @@ def frame_snapshot(world: carla.World, ego: carla.Vehicle, camera: carla.Sensor,
             "distance": _r(dist),
         })
 
+    walkers = []
+    for w in world.get_actors().filter("walker.pedestrian.*"):
+        tf = w.get_transform()
+        dist = tf.location.distance(ego_loc)
+        if dist > radius:
+            continue
+        walkers.append({
+            "id": w.id,
+            "type_id": w.type_id,
+            "transform": transform_to_dict(tf),
+            "bbox": bbox_to_dict(w.bounding_box),
+            "speed": _speed(w),
+            "distance": _r(dist),
+        })
+
     lights = {}
     for tl in traffic_lights:
         if tl.get_location().distance(ego_loc) <= radius:
@@ -93,5 +108,6 @@ def frame_snapshot(world: carla.World, ego: carla.Vehicle, camera: carla.Sensor,
         },
         "camera": transform_to_dict(camera.get_transform()),
         "vehicles": vehicles,
+        "walkers": walkers,
         "traffic_lights": lights,
     }

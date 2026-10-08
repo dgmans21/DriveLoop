@@ -1,0 +1,19 @@
+# C-7 v2: 추적기 수정 후 모델 인지만 재실행 (정답값은 ped_scen_model_v1과 같음 → 생략)
+# 시나리오 정의는 src/driveloop/eval/scenarios.py (PED_SCENARIOS: cross / stop / dartout / sidewalk / curb)
+# v1 → v2: 꾸준히 본 보행자는 놓쳐도 1초 유지 (v1: 비 오는 밤 차선 가운데 보행자 1초 놓침 → 지움 → 재가속 → 5.4m 급제동), 추적 전 측정 로그 추가
+name: ped_scen_model_v2
+map: Town05
+conditions:
+  - [clear, noon]
+  - [rain, noon]
+  - [clear, night]
+  - [rain, night]
+conditions_source: configs/collection/v3.yaml
+scenarios: [cross, stop, dartout, sidewalk, curb]
+seeds: [1]
+seconds: 30
+perceptions: [model]
+walker_blueprint: walker.pedestrian.0001
+weights: runs/detect/v4_base/weights/best.pt
+conf: 0.10
+output_root: outputs/compare

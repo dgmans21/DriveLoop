@@ -117,7 +117,7 @@ def object_row(obj: dict, img: Image.Image, width: int, height: int, qc: QCRules
     if obj["cls"] == "vehicle":
         if w * h > qc.vehicle.max_box_area_ratio * width * height:
             flags.append("vehicle_box_too_large")
-    else:
+    elif obj["cls"].startswith("tl_"):     # 보행자는 신호등 검사(세로 비율·불빛 색) 대상이 아니다
         aspect = h / max(w, 1e-6)
         if not qc.traffic_light.min_aspect <= aspect <= qc.traffic_light.max_aspect:
             flags.append("tl_aspect_odd")
@@ -128,7 +128,7 @@ def object_row(obj: dict, img: Image.Image, width: int, height: int, qc: QCRules
     return row
 
 
-CLASSES = ("vehicle", "tl_red", "tl_yellow", "tl_green")
+CLASSES = ("vehicle", "tl_red", "tl_yellow", "tl_green", "pedestrian")
 
 
 def frame_row(frame: dict, labels: dict, episode: dict, img: Image.Image, objects: list[dict],
@@ -144,8 +144,9 @@ def frame_row(frame: dict, labels: dict, episode: dict, img: Image.Image, object
     flags += sorted({f for o in objects for f in o["qc_flags"].split(",") if f})
 
     counts = {c: sum(o["cls"] == c for o in objects) for c in CLASSES}
-    tl = [o for o in objects if o["cls"] != "vehicle"]
+    tl = [o for o in objects if o["cls"].startswith("tl_")]
     veh = [o for o in objects if o["cls"] == "vehicle"]
+    ped = [o for o in objects if o["cls"] == "pedestrian"]
     ego_tl = [o["cls"] for o in tl if o["affects_ego"]]
     affecting = ego["affecting_light"]
     return {
@@ -163,6 +164,8 @@ def frame_row(frame: dict, labels: dict, episode: dict, img: Image.Image, object
         "n_vehicle_static": sum(bool(o["static"]) for o in veh),
         "n_vehicle_near": sum(o["depth"] is not None and o["depth"] < 30 for o in veh),
         "min_vehicle_depth": min((o["depth"] for o in veh if o["depth"] is not None), default=None),
+        "n_pedestrian_near": sum(o["depth"] is not None and o["depth"] < 30 for o in ped),
+        "min_pedestrian_depth": min((o["depth"] for o in ped if o["depth"] is not None), default=None),
         "min_tl_box_h": min((o["box_h"] for o in tl), default=None),
         "luma_mean": round(mean_l, 2), "luma_std": round(std_l, 2),
         "dhash": dhash(img),

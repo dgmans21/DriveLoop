@@ -1,0 +1,34 @@
+# v4: 보행자 추가 수집 (C-3) — v1~v3에는 보행자가 0명이라 기존 라벨은 그대로 유효 → 보행자 장면만 새로 모은다
+# 학습 맵 4개 전부(Town01·02·03·04)에서 새 seed(r2), test는 v4_test.yaml (Town05, 같은 name → data/raw/v4)
+# 보행자: CARLA AI가 보도를 걷고 walker_cross_factor 비율로 차도를 건넌다 (기본 0이면 차도 위 보행자 장면이 거의 없음)
+name: v4
+output_root: data/raw
+seed: 0
+maps: [Town01, Town02, Town03, Town04]
+repeat_start: 2
+repeats: 1
+
+weathers:
+  clear: {cloudiness: 10, precipitation: 0, precipitation_deposits: 0, wetness: 0, fog_density: 0}
+  rain:  {cloudiness: 90, precipitation: 70, precipitation_deposits: 60, wetness: 80, fog_density: 5}
+times:
+  noon:  {sun_altitude_angle: 60}
+  night: {sun_altitude_angle: -40}
+traffic:
+  low: 15
+  high: 50
+walkers:                    # 교통량 단계별 보행자 수 (맵 전체). 파일럿에서 화면 속 보행자 수를 보고 조정
+  low: 60
+  high: 150
+walker_cross_factor: 0.3
+walker_running: 0.1
+
+frames_per_episode: 150     # 일반 저장 장수 = 에피소드 길이 75초 (노란불 추가 저장은 별도)
+capture_interval: 0.5
+warmup_seconds: 3.0
+fixed_delta_seconds: 0.05
+label_radius: 80.0
+camera: {width: 1280, height: 720, fov: 90, x: 0.5, z: 1.7}   # 학습·주행 카메라와 동일하게 유지
+
+traffic_light_timing: {green: 6, yellow: 6, red: 2}
+yellow_capture_interval: 0.25

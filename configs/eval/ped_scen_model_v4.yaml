@@ -1,0 +1,20 @@
+# C-7 v4: 판단 변경 → 정답값·모델 모두 재실행
+# 시나리오 정의는 src/driveloop/eval/scenarios.py (PED_SCENARIOS: cross / stop / dartout / sidewalk / curb)
+# v3 → v4: 보행자 안전 속도 2 m/s²로 되돌림 (4는 정답값 뛰어듦 3.8 → 7.6 악화), 주의 서행 여유 1m → 정지 간격 5m
+# (v2 → v3: 유지 2초, 주의 서행 추가 / v1 → v2: 꾸준히 본 보행자는 놓쳐도 유지)
+name: ped_scen_model_v4
+map: Town05
+conditions:
+  - [clear, noon]
+  - [rain, noon]
+  - [clear, night]
+  - [rain, night]
+conditions_source: configs/collection/v3.yaml
+scenarios: [cross, stop, dartout, sidewalk, curb]
+seeds: [1]
+seconds: 30
+perceptions: [gt, model]
+walker_blueprint: walker.pedestrian.0001
+weights: runs/detect/v4_base/weights/best.pt
+conf: 0.10
+output_root: outputs/compare

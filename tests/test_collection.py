@@ -105,3 +105,12 @@ def test_new_repeat_gets_new_seed_old_ids_unchanged():
 def test_episode_length_is_time_based():
     cfg = make_cfg()
     assert cfg.episode_ticks == cfg.frames_per_episode * cfg.capture_every_ticks
+
+
+def test_walkers_default_to_zero_and_follow_traffic_level():
+    v3 = load_collection_config(CONFIG_DIR / "collection" / "v3.yaml")
+    assert v3.walker_count("high") == 0                     # v1~v3: 보행자 없음 (기존 설정 그대로)
+    v4 = load_collection_config(CONFIG_DIR / "collection" / "v4.yaml")
+    assert v4.walker_count("low") == 60 and v4.walker_count("high") == 150
+    ids = {s.episode_id for s in expand_matrix(v4)}
+    assert "Town01_clear_noon_high_r2" in ids and len(ids) == 32
