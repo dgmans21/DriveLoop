@@ -28,13 +28,14 @@ window.I18N = {
     "acc.finalCols": ["시나리오", "인지", "충돌", "최소 간격", "최소 TTC", "급제동", "멈춘/마지막 간격", "거리 오차", "놓침"],
     "acc.scen": { "follow": "따라가기 (20 km/h)", "brake": "앞차 급정거", "stopped": "정차된 차", "cutin": "끼어들기" },
     "acc.evoTitle": "개선 과정 — 비교로 문제를 찾고 고친 순서",
-    "acc.evoSub": "모든 버전에서 같은 32회(시나리오 4 × 날씨 4 × 정답값/모델). 정답값 급제동은 11회로 고정 — 모델이 얼마나 가까워졌는지가 핵심.",
-    "acc.evoCols": ["버전", "바꾼 것", "충돌", "모델 급제동 (정답값 11)", "거리 오차", "앞차 속도 오차", "속도를 2 m/s 넘게 빠르게 본 비율", "정차된 차 최소 TTC"],
-    "acc.evoWhat": { "acc_scen_v2": "카메라 거리(평지 가정) + 지수 평활 속도", "acc_scen_v3": "속도: 알파-베타 필터, 새 앞차는 '서 있다'로 시작", "acc_scen_v4": "거리: 지도의 도로 높이로 경사 보정" },
+    "acc.evoSub": "모든 버전에서 같은 32회(시나리오 4 × 날씨 4 × 정답값/모델). v2~v4는 인지(모델)만 고쳤고 정답값 급제동은 11회 그대로, v5는 판단을 고쳐 정답값과 모델 모두 줄었다.",
+    "acc.evoCols": ["버전", "바꾼 것", "충돌", "모델 급제동", "정답값 급제동", "거리 오차", "앞차 속도 오차", "속도를 2 m/s 넘게 빠르게 본 비율", "정차된 차 최소 TTC"],
+    "acc.evoWhat": { "acc_scen_v2": "카메라 거리(평지 가정) + 지수 평활 속도", "acc_scen_v3": "속도: 알파-베타 필터, 새 앞차는 '서 있다'로 시작", "acc_scen_v4": "거리: 지도의 도로 높이로 경사 보정", "acc_scen_v5": "판단: 간격 맞추기는 편안한 감속(2 m/s²)으로만, 안전 속도만 즉시" },
     "acc.cases": [
       ["앞차 속도가 흔들려 급제동 3배", "거리를 프레임마다 빼서 속도를 내니 오차 p90이 5.4 m/s. 처음 본 차를 '나와 같은 속도'로 가정해 서 있는 차를 움직인다고 착각", "알파-베타 필터 + 새 앞차는 '서 있다'로 시작 → 속도 오차 1.03 → 0.52 m/s, 급제동 32 → 23"],
       ["오르막 위 차를 20m에서야 인식", "평지 가정 거리로 20m 앞 차를 46m로 잼 → 앞차 탐색 범위(50m) 밖으로 보고 무시. 지도로 확인하니 30m 앞부터 5~7° 오르막", "지도의 도로 높이와 카메라 광선의 교점으로 거리 → 정차된 차 TTC 2.1 → 4.0초, 거리 오차 1.83 → 0.80m"],
-      ["IMU(차체 기울기)가 필요한가?", "급제동 때 차체가 숙여지면 카메라 각도가 바뀌어 거리가 틀어진다", "측정: CARLA 차체 기울기 상위 1% 0.13°(20m 앞 0.6m 오차) → 시뮬레이터에선 불필요. 실차는 1~3° 숙여져 IMU 필수 — 한계로 기록"]
+      ["IMU(차체 기울기)가 필요한가?", "급제동 때 차체가 숙여지면 카메라 각도가 바뀌어 거리가 틀어진다", "측정: CARLA 차체 기울기 상위 1% 0.13°(20m 앞 0.6m 오차) → 시뮬레이터에선 불필요. 실차는 1~3° 숙여져 IMU 필수 — 한계로 기록"],
+      ["안전과 무관한 급제동 (정답값도)", "영상에서 발견: 끼어든 차가 원하는 간격보다 가까우면 '간격 맞추기'가 목표 속도를 0으로 → 속도 PID가 차이만큼 브레이크(2 m/s 차이면 거의 최대)", "간격 맞추기는 편안한 감속(2 m/s²)으로만 목표를 낮추고, 안전 속도만 즉시 → 급제동 정답값 11 → 0, 모델 18 → 4, 충돌·멈춘 간격은 그대로"]
     ],
     "acc.caseK": ["문제", "원인", "해결"],
     "cmp.title": "정답값 인지 vs 내 모델 인지 — 같은 길, 같은 신호에서 운전 비교",
@@ -109,10 +110,10 @@ window.I18N = {
     "res.k": ["원인", "측정", "해결"],
     "lim.title": "한계와 다음 단계",
     "lim.items": [
-      "앞차 따라가기 진행 중 — 판단(안전 속도 + 시간 간격)과 카메라 거리 추정(바닥선, 20m 이내 오차 0.3~0.45m)은 완료, NPC 교통 속 정답값 vs 모델 비교 중. 지금 데모 영상에는 다른 차량이 없다",
+      "앞차 따라가기는 연출한 시나리오 4개 × 날씨 4개로 검증 (충돌 0, 급제동 모델 4회·정답값 0회). 무작위 교통 속 장시간 주행·보행자와의 조합은 아직 검증 전. 신호등 데모 영상에는 다른 차량이 없다",
+      "카메라 거리의 경사 보정은 지도(도로 높이)와 시뮬레이터의 카메라 자세를 믿는다 — 실차는 측위 오차·차체 기울기(1~3°)가 있어 IMU·레이더 보완 필요. CARLA 차체 기울기는 측정상 0.13° 이하라 생략",
       "보행자 미지원 — 같은 파이프라인에 클래스 추가 예정 (v4)",
       "눈 날씨 미검증 — CARLA 0.9.16에 눈이 없음. 실제 데이터(sim-to-real)로 보완 계획",
-      "카메라 거리는 평평한 도로 가정 — 언덕이 많은 Town03에서 30m 이상 오차가 커짐 (Town05 주행 구간은 영향 없음)",
       "남은 인지 약점: 아주 작은 신호(<12px) 재현율 0.53, 비 오는 밤 차량 0.64",
       "검증 규모: 빨간불 정지 52번에 위반 0 → 말할 수 있는 위반율 상한 약 5.8%. 차량·보행자를 넣은 뒤 시드와 시나리오를 늘려 최종 검증 예정"
     ],
@@ -147,13 +148,14 @@ window.I18N = {
     "acc.finalCols": ["scenario", "perception", "collisions", "min gap", "min TTC", "hard brakes", "stop / final gap", "distance error", "missed"],
     "acc.scen": { "follow": "follow (20 km/h)", "brake": "lead brakes hard", "stopped": "stopped car", "cutin": "cut-in" },
     "acc.evoTitle": "How it improved — found by comparison, fixed one by one",
-    "acc.evoSub": "The same 32 runs every version (4 scenarios × 4 weathers × ground truth/model). Ground truth always brakes hard 11 times — the point is how close the model gets.",
-    "acc.evoCols": ["version", "change", "collisions", "model hard brakes (GT 11)", "distance error", "lead speed error", "lead seen >2 m/s too fast", "stopped car min TTC"],
-    "acc.evoWhat": { "acc_scen_v2": "camera distance (flat road) + smoothed speed", "acc_scen_v3": "speed: alpha-beta filter, new leads start as 'stopped'", "acc_scen_v4": "distance: slope correction from map road height" },
+    "acc.evoSub": "The same 32 runs every version (4 scenarios × 4 weathers × ground truth/model). v2–v4 fixed perception only, so ground truth kept braking hard 11 times; v5 fixed planning, so both dropped.",
+    "acc.evoCols": ["version", "change", "collisions", "model hard brakes", "ground-truth hard brakes", "distance error", "lead speed error", "lead seen >2 m/s too fast", "stopped car min TTC"],
+    "acc.evoWhat": { "acc_scen_v2": "camera distance (flat road) + smoothed speed", "acc_scen_v3": "speed: alpha-beta filter, new leads start as 'stopped'", "acc_scen_v4": "distance: slope correction from map road height", "acc_scen_v5": "planning: gap-keeping only at comfortable decel (2 m/s²); only the safe speed acts immediately" },
     "acc.cases": [
       ["Jittery lead speed → 3× hard braking", "speed from frame-to-frame distance differences, p90 error 5.4 m/s; a new lead was assumed to move at my speed, so a stopped car looked like it was moving", "alpha-beta filter + new leads start as 'stopped' → speed error 1.03 → 0.52 m/s, hard brakes 32 → 23"],
       ["A car on an uphill seen only at 20 m", "the flat-road distance read a car 20 m ahead as 46 m → outside the 50 m lead search; the map showed a 5–7° uphill from 30 m on", "intersect the camera ray with the map's road height → stopped-car TTC 2.1 → 4.0 s, distance error 1.83 → 0.80 m"],
-      ["Do we need an IMU (body pitch)?", "under braking the body pitches and the camera angle shifts the distance", "measured: CARLA body pitch p99 0.13° (0.6 m at 20 m) → not needed in sim; real cars pitch 1–3°, so an IMU is a must — recorded as a limit"]
+      ["Do we need an IMU (body pitch)?", "under braking the body pitches and the camera angle shifts the distance", "measured: CARLA body pitch p99 0.13° (0.6 m at 20 m) → not needed in sim; real cars pitch 1–3°, so an IMU is a must — recorded as a limit"],
+      ["Hard braking unrelated to safety (ground truth too)", "spotted in the video: when a cut-in car is closer than the desired gap, gap-keeping drops the target to 0 and the speed PID brakes by the difference (a 2 m/s gap is nearly full brake)", "gap-keeping now lowers the target only at comfortable decel (2 m/s²); only the safe speed acts immediately → hard brakes: ground truth 11 → 0, model 18 → 4, with collisions and stop gaps unchanged"]
     ],
     "acc.caseK": ["problem", "cause", "fix"],
     "cmp.title": "Ground-truth perception vs my model — same roads, same lights",
@@ -228,10 +230,10 @@ window.I18N = {
     "res.k": ["cause", "measured", "fix"],
     "lim.title": "Limits and next steps",
     "lim.items": [
-      "Car following in progress — planning (safe speed + time gap) and camera distance (ground-line, 0.3–0.45 m median error within 20 m) are done; ground truth vs model comparison in traffic is running. The current demo videos have no other traffic",
+      "Car following is validated on four staged scenarios × four weathers (0 collisions; hard brakes: model 4, ground truth 0). Long drives in random traffic and combinations with pedestrians are not validated yet. The traffic-light demo videos have no other traffic",
+      "Slope-corrected camera distance trusts the map's road height and the simulator's camera pose — real cars have localization error and 1–3° body pitch, needing an IMU and radar. CARLA body pitch measured below 0.13°, so it is skipped here",
       "No pedestrians yet — next class to add through the same pipeline (v4)",
       "Snow not validated — CARLA 0.9.16 has no snow; to be covered with real data (sim-to-real)",
-      "Camera distance assumes a flat road — errors grow beyond 30 m on hilly Town03 (the Town05 driving area is unaffected)",
       "Remaining perception weak spots: tiny lights (<12 px) recall 0.53, vehicles in rain at night 0.64",
       "Validation scale: 0 violations in 52 red stops only bounds the rate below ~5.8%. Final validation with more seeds and scenarios after adding traffic and pedestrians"
     ],

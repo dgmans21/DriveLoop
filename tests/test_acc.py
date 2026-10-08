@@ -46,6 +46,28 @@ def test_oncoming_car_is_treated_as_stopped():
     assert acc_target(20.0, -5.0, CRUISE).target_speed == pytest.approx(acc_target(20.0, 0.0, CRUISE).target_speed)
 
 
+def test_gap_term_lowers_target_only_at_comfort_rate():
+    from driveloop.planning.acc import smooth_target
+    # 끼어들기: 11m 앞, 앞차 1.6 m/s, 내 속도 7.5 → 간격 항은 0, 안전 속도는 ~5.2 m/s
+    acc = acc_target(11.1, 1.6, 7.5)
+    assert acc.gap_speed == 0.0 and acc.safe_speed > 4.0
+    t = smooth_target(acc, prev_target=8.33, comfort_decel=2.0, dt=0.05)
+    assert t == pytest.approx(acc.safe_speed)           # 0으로 떨어지지 않고 안전 속도까지만 (즉시)
+    t2 = smooth_target(acc, prev_target=t, comfort_decel=2.0, dt=0.05)
+    assert t2 == pytest.approx(t - 0.1)                 # 그다음부터는 편안한 감속(2 m/s² × 0.05초)으로만
+
+
+def test_safe_speed_is_followed_immediately():
+    from driveloop.planning.acc import smooth_target
+    acc = acc_target(6.0, 0.0, 8.0)                     # 정지 차가 바로 앞: 안전 속도가 작다
+    assert smooth_target(acc, prev_target=8.33, comfort_decel=2.0, dt=0.05) == pytest.approx(acc.safe_speed)
+
+
+def test_no_lead_means_no_smoothing():
+    from driveloop.planning.acc import smooth_target
+    assert smooth_target(acc_target(None, None, 8.0), 8.33, 2.0, 0.05) is None
+
+
 def test_safe_speed_lets_me_stop_if_lead_brakes():
     # 같은 감속도로 둘 다 제동할 때 내 정지 거리 ≤ 앞차 정지 거리 + (간격 − d0)
     gap, vl = 20.0, 6.0

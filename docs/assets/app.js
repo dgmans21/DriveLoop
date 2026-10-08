@@ -77,7 +77,7 @@
     const ec = t("acc.evoCols"), what = t("acc.evoWhat");
     $("#acc-evo").innerHTML = `<thead><tr>${ec.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>` +
       acc.versions.map((v, i) => `<tr><td>${v.name.replace("acc_scen_", "")}</td><td>${what[v.name] || ""}</td>` +
-        `<td>${v.collisions}</td><td class="${i ? "hl" : ""}">${v.hard_model}</td><td>${n(v.dist_err, 2, " m")}</td>` +
+        `<td>${v.collisions}</td><td class="${i ? "hl" : ""}">${v.hard_model}</td><td>${v.hard_gt}</td><td>${n(v.dist_err, 2, " m")}</td>` +
         `<td>${n(v.speed_err, 2, " m/s")}</td><td>${pct(v.speed_over)}</td><td>${n(v.stopped_ttc, 1, " s")}</td></tr>`).join("") +
       "</tbody>";
     const k = t("acc.caseK");

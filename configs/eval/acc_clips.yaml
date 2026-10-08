@@ -1,0 +1,13 @@
+# 결과 페이지용 앞차 시나리오 영상 (scripts/52_acc_scenarios.py --record) — 지표 비교용 acc_scen_v4와 같은 코드·조건
+name: acc_clips
+map: Town05
+conditions:
+  - [clear, noon]
+conditions_source: configs/collection/v3.yaml
+scenarios: [brake, stopped, cutin]
+seeds: [1]
+seconds: 35
+perceptions: [model]
+weights: runs/detect/v3_base/weights/best.pt
+conf: 0.10
+output_root: outputs/compare

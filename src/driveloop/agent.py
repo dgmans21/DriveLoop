@@ -17,7 +17,7 @@ from driveloop.control.lateral import pick_lookahead_point, pure_pursuit_steer, 
 from driveloop.control.pid import LongitudinalController
 from driveloop.perception.ground_truth import GroundTruthPerception
 from driveloop.perception.types import PerceptionOutput
-from driveloop.planning.acc import AccOutput, acc_target
+from driveloop.planning.acc import AccOutput, acc_target, smooth_target
 from driveloop.planning.behavior import Decision, TrafficLightBehavior
 from driveloop.planning.route import RoutePlanner
 from driveloop.planning.speed_limit import curve_speed_limit
@@ -48,6 +48,7 @@ class DrivingAgent:
         self.behavior = TrafficLightBehavior(drv)
         self.longitudinal = LongitudinalController(drv)
         self.max_steer = math.radians(ego.get_physics_control().wheels[0].max_steer_angle)
+        self._prev_target: float | None = None
 
     def step(self, image, dt: float) -> StepResult:
         drv = self.drv
@@ -65,8 +66,10 @@ class DrivingAgent:
         acc = acc_target(p.lead_distance, p.lead_speed, speed, time_gap=drv.acc_time_gap,
                          standstill_gap=drv.acc_standstill_gap, tau=drv.acc_tau,
                          comfort_decel=drv.comfort_decel, max_decel=drv.max_stop_decel)
+        acc_limit = smooth_target(acc, self._prev_target, drv.comfort_decel, dt)   # 간격 항은 편안한 감속으로만
         target_speed = min(decision.target_speed, curve_limit,
-                           acc.target_speed if acc.target_speed is not None else float("inf"))
+                           acc_limit if acc_limit is not None else float("inf"))
+        self._prev_target = target_speed
         throttle, brake = self.longitudinal.step(target_speed, speed, dt)
         if len(points) >= 2:
             ego_xy = (tf.location.x, tf.location.y)

@@ -120,8 +120,39 @@ class LeadDriver:
             self.v.apply_control(carla.VehicleControl(throttle=thr, brake=brk, steer=steer))
 
 
+def _clip_frame(front_img, chase_img, r, dbg):
+    """녹화용 한 프레임: 검출 박스 + 고른 앞차(굵게, 모델 거리 vs 정답) + 판단 패널 + 3인칭 화면."""
+    import cv2
+
+    from driveloop.sim.sensors import image_to_rgb
+    from driveloop.viz.overlay import draw_detections, draw_panel, paste_inset
+
+    view = image_to_rgb(front_img)
+    if dbg is not None:
+        view = draw_detections(view, [d for d in dbg.detections if d.cls == "vehicle"])
+        if dbg.lead_det is not None and r.p.lead_distance is not None:
+            x1, y1, x2, y2 = (int(v) for v in dbg.lead_det.box)
+            cv2.rectangle(view, (x1 - 2, y1 - 2), (x2 + 2, y2 + 2), (255, 210, 60), 3, cv2.LINE_AA)
+            gt = f" (gt {r.gt.lead_distance:.1f})" if r.gt.lead_distance is not None else ""
+            label = f"LEAD {r.p.lead_distance:.1f} m{gt}"
+            cv2.putText(view, label, (x1, max(18, y1 - 8)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 4, cv2.LINE_AA)
+            cv2.putText(view, label, (x1, max(18, y1 - 8)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 210, 60), 2, cv2.LINE_AA)
+    W, G, Y, C = (255, 255, 255), (180, 180, 180), (255, 210, 60), (90, 210, 255)
+
+    def fmt(d, s):
+        return "-" if d is None else f"{d:5.1f} m  {s * 3.6:5.1f} km/h"
+    lines = [("Perception: MY MODEL (camera only)", C),
+             (f"Lead model: {fmt(r.p.lead_distance, r.p.lead_speed or 0.0)}", Y),
+             (f"Lead truth: {fmt(r.gt.lead_distance, r.gt.lead_speed or 0.0)}", G),
+             (f"ACC limit : {'-' if r.acc.target_speed is None else f'{r.acc.target_speed * 3.6:5.1f} km/h'}"
+              + ("  EMERGENCY" if r.acc.emergency else ""), (255, 90, 90) if r.acc.emergency else W),
+             (f"Speed     : {r.speed * 3.6:5.1f} / {r.target_speed * 3.6:5.1f} km/h", W)]
+    view = draw_panel(view, lines, width=470)
+    return paste_inset(view, image_to_rgb(chase_img), 0.28)
+
+
 def run_one(world, sim_cfg, drv, cfg: ScenarioConfig, sc: Scenario, seed: int, perception: str,
-            csv_path: Path) -> dict:
+            csv_path: Path, record_dir: Path | None = None) -> dict:
     dt = sim_cfg.fixed_delta_seconds
     front = CaptureCamera()
     wmap = world.get_map()
@@ -165,6 +196,14 @@ def run_one(world, sim_cfg, drv, cfg: ScenarioConfig, sc: Scenario, seed: int, p
                                            carla.Transform(carla.Location(x=front.x, z=front.z)))
             pool.add(cam)
 
+        recorder, chase_q = None, None
+        if record_dir is not None and perception == "model":
+            from driveloop.viz.overlay import Mp4Recorder
+            chase, chase_q = attach_rgb_camera(world, ego, sim_cfg.camera)
+            pool.add(chase)
+            record_dir.mkdir(parents=True, exist_ok=True)
+            recorder = Mp4Recorder(record_dir / f"{csv_path.stem}_raw.mp4", 1 / dt, (front.width, front.height))
+
         def make_model(route, _gt):
             from driveloop.perception.model import ModelPerception
             return ModelPerception(world, ego, route, cam, front.width, front.height, front.fov,
@@ -206,11 +245,18 @@ def run_one(world, sim_cfg, drv, cfg: ScenarioConfig, sc: Scenario, seed: int, p
                              _r(r.transform.rotation.pitch, 3),
                              _r(wmap.get_waypoint(r.transform.location).transform.rotation.pitch, 3),
                              _r(dbg.lead_measured) if dbg else None])
+                if recorder is not None:
+                    recorder.write(_clip_frame(img, get_frame(chase_q, frame), r, dbg))
             wall = time.perf_counter() - wall
         finally:
             for tl in lights:
                 tl.freeze(False)
             world.reset_all_traffic_lights()
+            if recorder is not None:
+                from driveloop.viz.overlay import to_web_mp4
+                recorder.close()
+                if to_web_mp4(recorder.path, record_dir / f"{csv_path.stem}.mp4"):
+                    Path(recorder.path).unlink()
 
     with open(csv_path.with_suffix(".csv.partial"), "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
@@ -239,6 +285,8 @@ def main() -> None:
     ap.add_argument("--only", default=None, help="날씨 조건 id (쉼표), 예: clear_noon")
     ap.add_argument("--scenarios", default=None, help="시나리오 (쉼표), 예: follow,brake")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--record", action="store_true",
+                    help="모델 인지 실행을 오버레이 영상으로 녹화 → <output_root>/<name>/clips/ (40_build_site.py가 웹에 넣음)")
     args = ap.parse_args()
 
     cfg = load_config(ScenarioConfig, args.config)
@@ -276,7 +324,8 @@ def main() -> None:
                 current = cid
             sc = SCENARIOS[sname]
             sc = Scenario(sc.name, sc.lead_offset, sc.adjacent, cfg.seconds)
-            s = run_one(world, sim_cfg, drv, cfg, sc, seed, p, out / f"{stem}.csv")
+            s = run_one(world, sim_cfg, drv, cfg, sc, seed, p, out / f"{stem}.csv",
+                        out.parent / "clips" if args.record else None)
             s.update({"condition": f"{cid}_{sname}", "weather": cid, "scenario": sname, "seed": seed, "perception": p})
             (out / f"{stem}.json").write_text(json.dumps(s, ensure_ascii=False, indent=1), encoding="utf-8")
             print(f"[{i}/{len(todo)}] {stem:32} {s['wall_s']:5.0f}s  충돌 {s['collisions']}(앞{s['collisions_front']})  "

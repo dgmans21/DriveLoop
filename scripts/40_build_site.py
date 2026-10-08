@@ -122,6 +122,26 @@ def summarize(csv: pd.DataFrame) -> dict:
     }
 
 
+def build_acc_clips(src: Path, skip_video: bool) -> list[dict]:
+    """52_acc_scenarios.py --record 영상 → docs/assets/acc/<이름>.mp4 (960px) + 포스터. 이름: <날씨>_<시나리오>_s<시드>_model"""
+    order = {"brake": 0, "stopped": 1, "cutin": 2, "follow": 3}
+    out_dir = ASSETS / "acc"
+    clips = []
+    for p in sorted(src.glob("*_model.mp4")) if src.exists() else []:
+        stem = p.stem
+        parts = stem.split("_")
+        cond, scen = "_".join(parts[:2]), parts[2]
+        if not skip_video:
+            out_dir.mkdir(parents=True, exist_ok=True)
+            encode(p, out_dir / f"{stem}.mp4", 960, 28)
+            ffmpeg("-ss", "12", "-i", str(p), "-frames:v", "1", "-vf", "scale=960:-2", "-q:v", "4",
+                   str(out_dir / f"{stem}.jpg"))
+        if (out_dir / f"{stem}.mp4").exists():
+            clips.append({"scenario": scen, "condition": cond, "src": f"assets/acc/{stem}.mp4",
+                          "poster": f"assets/acc/{stem}.jpg"})
+    return sorted(clips, key=lambda c: order.get(c["scenario"], 9))
+
+
 def build_acc(versions: list[str]) -> dict | None:
     """앞차 시나리오(52_acc_scenarios.py) 결과 → 웹용: 최종 버전의 시나리오별 정답값 vs 모델 + 버전별 개선 과정."""
     root = PROJECT_ROOT / "outputs" / "compare"
@@ -169,7 +189,7 @@ def main() -> None:
     ap.add_argument("--web-root", default=str(PROJECT_ROOT / "outputs" / "web"))
     ap.add_argument("--highlight", default="clear_noon:122:137", help="조건:시작초:끝초 (오버레이 녹화에서 자름)")
     ap.add_argument("--skip-video", action="store_true", help="JSON만 갱신 (영상 재압축 생략)")
-    ap.add_argument("--acc-versions", default="acc_scen_v2,acc_scen_v3,acc_scen_v4",
+    ap.add_argument("--acc-versions", default="acc_scen_v2,acc_scen_v3,acc_scen_v4,acc_scen_v5",
                     help="앞차 시나리오 결과 (개선 과정 순서, 마지막이 최종)")
     ap.add_argument("--compare", default="compare_v2",
                     help="outputs/compare/<이름>/summary.json 을 웹에 넣는다 (--baseline으로 만든 전/후 비교 포함)")
@@ -231,6 +251,7 @@ def main() -> None:
 
     acc = build_acc(args.acc_versions.split(","))
     if acc:
+        acc["clips"] = build_acc_clips(PROJECT_ROOT / "outputs" / "compare" / "acc_clips" / "clips", args.skip_video)
         (ASSETS / "acc.json").write_text(json.dumps(acc, ensure_ascii=False, indent=1), encoding="utf-8")
         print(f"[site] acc ← {', '.join(v['name'] for v in acc['versions'])}")
 
