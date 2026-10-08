@@ -184,6 +184,85 @@ def build_acc(versions: list[str]) -> dict | None:
     return out if out["versions"] else None
 
 
+def build_ped_clips(src: Path) -> list[dict]:
+    """53_ped_scenarios.py --record 영상 → docs/assets/ped/<이름>.mp4 (960px) + 포스터.
+    없는 것만 인코딩 (--skip-video와 무관: 새 영상만 추가되므로 기존 주행 영상 재인코딩 없이 갱신 가능)."""
+    order = {"dartout": 0, "stop": 1, "cross": 2, "curb": 3, "sidewalk": 4}
+    poster_at = {"dartout": 7.0, "stop": 9.0, "cross": 5.5, "curb": 6.4}
+    out_dir = ASSETS / "ped"
+    clips = []
+    for p in sorted(src.glob("*_model.mp4")) if src.exists() else []:
+        stem = p.stem
+        parts = stem.split("_")
+        cond, scen = "_".join(parts[:2]), parts[2]
+        if not (out_dir / f"{stem}.mp4").exists():
+            out_dir.mkdir(parents=True, exist_ok=True)
+            encode(p, out_dir / f"{stem}.mp4", 960, 28)
+            ffmpeg("-ss", str(poster_at.get(scen, 6)), "-i", str(p), "-frames:v", "1", "-vf", "scale=960:-2",
+                   "-q:v", "4", str(out_dir / f"{stem}.jpg"))
+        if (out_dir / f"{stem}.mp4").exists():
+            clips.append({"scenario": scen, "condition": cond, "src": f"assets/ped/{stem}.mp4",
+                          "poster": f"assets/ped/{stem}.jpg"})
+    return sorted(clips, key=lambda c: order.get(c["scenario"], 9))
+
+
+def build_ped(versions: list[str], detect_runs: tuple[str, str]) -> dict | None:
+    """보행자 시나리오(53_ped_scenarios.py) → 웹용: 최종 버전 시나리오별 정답값 vs 모델 + 버전별 개선 + 모델 성적표."""
+    root = PROJECT_ROOT / "outputs" / "compare"
+    out = {"versions": [], "final": [], "detect": None}
+    last = None
+    gt_by_version = {}
+    for v in versions:
+        runs = sorted((root / v / "runs").glob("*.json"))
+        if not runs:
+            continue
+        df = pd.DataFrame([json.loads(p.read_text(encoding="utf-8")) for p in runs])
+        m, g = df[df.perception == "model"], df[df.perception == "gt"]
+        if len(g):
+            gt_by_version[v] = g
+        out["versions"].append({
+            "name": v, "runs": int(len(df)), "collisions": int(df.collisions.sum()),
+            "hard_model": int(m.hard_brakes.sum()), "hard_gt": int(g.hard_brakes.sum()) if len(g) else None,
+            "max_decel_model": round(float(m.max_decel.max()), 1),
+            "max_decel_gt": round(float(g.max_decel.max()), 1) if len(g) else None,
+            "dart_gap": round(float(m[m.scenario == "dartout"].min_ped_gap.min()), 1),
+        })
+        last = df
+    if last is None:
+        return None
+    agg = last.groupby(["scenario", "perception"]).agg(
+        runs=("seed", "size"), collisions=("collisions", "sum"), min_gap=("min_ped_gap", "min"),
+        hard=("hard_brakes", "sum"), max_decel=("max_decel", "max"), min_speed=("min_speed_after_cruise", "min"),
+        yield_s=("yield_s", "mean"), miss=("ped_miss_rate", "mean"), first_seen=("first_seen_gap", "mean")).reset_index()
+    order = {"cross": 0, "stop": 1, "dartout": 2, "curb": 3, "sidewalk": 4}
+    agg = agg.sort_values(["scenario", "perception"], key=lambda s: s.map(order) if s.name == "scenario" else s)
+    out["final"] = [{k: (None if pd.isna(x) else (round(float(x), 2) if isinstance(x, float) else x))
+                     for k, x in r.items()} for r in agg.to_dict(orient="records")]
+    # 모델 성적표: 같은 시험지(원본 v2 = v3 테스트와 같은 Town05 814장)에서 v3 vs v4 + v4 전체 테스트의 보행자 거리별
+    old, new = (PROJECT_ROOT / "runs" / "detect" / r / "eval" for r in detect_runs)
+    try:
+        a = json.loads((old / "test_v2src.json").read_text(encoding="utf-8"))
+        b = json.loads((new / "test_v2src.json").read_text(encoding="utf-8"))
+        full = json.loads((new / "test.json").read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        a = None
+    if a:
+        cls = ["tl_red", "tl_yellow", "tl_green", "vehicle"]
+        out["detect"] = {
+            "images": b["images"],
+            "same": [{"cls": c, "old": a["recall_by_class"][c]["recall"], "new": b["recall_by_class"][c]["recall"],
+                      "old_fp": a["false_positives"].get(c, 0), "new_fp": b["false_positives"].get(c, 0),
+                      "n": a["recall_by_class"][c]["n"]} for c in cls],
+            "ped_size": [{"bin": k.split("|", 1)[1], **v} for k, v in full["recall_by_size"].items()
+                         if k.startswith("pedestrian|")],
+            "ped_recall": full["recall_by_class"]["pedestrian"]["recall"],
+            "ped_phantom_v2src": b["false_positives"].get("pedestrian", 0),
+        }
+        far = {"<24 (45m+)": 0, "24–40 (27–45m)": 1, "40–80 (14–27m)": 2, "80–160 (7–14m)": 3, "160+ (<7m)": 4}
+        out["detect"]["ped_size"].sort(key=lambda r: -far.get(r["bin"], 0))
+    return out
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--web-root", default=str(PROJECT_ROOT / "outputs" / "web"))
@@ -191,6 +270,9 @@ def main() -> None:
     ap.add_argument("--skip-video", action="store_true", help="JSON만 갱신 (영상 재압축 생략)")
     ap.add_argument("--acc-versions", default="acc_scen_v2,acc_scen_v3,acc_scen_v4,acc_scen_v5",
                     help="앞차 시나리오 결과 (개선 과정 순서, 마지막이 최종)")
+    ap.add_argument("--ped-versions", default="ped_scen_model_v1,ped_scen_model_v2,ped_scen_model_v3,ped_scen_model_v4",
+                    help="보행자 시나리오 결과 (개선 과정 순서, 마지막이 최종)")
+    ap.add_argument("--ped-clips", default="ped_clips_v4", help="outputs/compare/<이름>/clips 의 녹화 영상")
     ap.add_argument("--compare", default="compare_v2",
                     help="outputs/compare/<이름>/summary.json 을 웹에 넣는다 (--baseline으로 만든 전/후 비교 포함)")
     args = ap.parse_args()
@@ -254,6 +336,12 @@ def main() -> None:
         acc["clips"] = build_acc_clips(PROJECT_ROOT / "outputs" / "compare" / "acc_clips" / "clips", args.skip_video)
         (ASSETS / "acc.json").write_text(json.dumps(acc, ensure_ascii=False, indent=1), encoding="utf-8")
         print(f"[site] acc ← {', '.join(v['name'] for v in acc['versions'])}")
+
+    ped = build_ped(args.ped_versions.split(","), ("v3_base", "v4_base"))
+    if ped:
+        ped["clips"] = build_ped_clips(PROJECT_ROOT / "outputs" / "compare" / args.ped_clips / "clips")
+        (ASSETS / "ped.json").write_text(json.dumps(ped, ensure_ascii=False, indent=1), encoding="utf-8")
+        print(f"[site] ped ← {', '.join(v['name'] for v in ped['versions'])}, 영상 {len(ped['clips'])}개")
 
     if not args.skip_video and args.highlight:
         cond, a, b = args.highlight.split(":")

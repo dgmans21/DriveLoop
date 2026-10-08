@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DriveLoop · Try</title>
+<meta name="description" content="CARLA 데이터로 학습한 DriveLoop 검출 모델(YOLO11n)을 브라우저에서 직접 실행 — 신호등·차량·보행자">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html">DriveLoop</a>
+  <nav>
+    <a href="index.html" data-i18n="nav.back"></a>
+  </nav>
+  <button id="lang" class="chip" type="button" aria-label="language">EN</button>
+</header>
+
+<main>
+  <section id="try">
+    <h1 data-i18n="try.title"></h1>
+    <p class="lead" id="try-lead"></p>
+
+    <div class="try-layout">
+      <div class="try-stage">
+        <div class="try-view" id="drop">
+          <canvas id="view" aria-label="detections"></canvas>
+          <div class="try-status" id="status" role="status"></div>
+        </div>
+        <div class="controls">
+          <label class="try-conf"><span data-i18n="try.conf"></span>
+            <input type="range" id="conf" min="0.05" max="0.9" step="0.05" value="0.1">
+            <output id="conf-v">0.10</output></label>
+          <label><input type="checkbox" id="t-labels" checked> <span data-i18n="try.labels"></span></label>
+          <label id="gt-wrap"><input type="checkbox" id="t-gt"> <span data-i18n="try.gt"></span></label>
+        </div>
+        <p class="note try-conf-note" data-i18n="try.confNote"></p>
+        <div class="try-counts" id="counts"></div>
+        <p class="note" id="caption"></p>
+      </div>
+
+      <aside class="try-side">
+        <h3 class="h3" data-i18n="try.samples"></h3>
+        <div class="thumbs" id="thumbs"></div>
+        <h3 class="h3" data-i18n="try.own"></h3>
+        <label class="btn upload"><input type="file" id="file" accept="image/*" hidden><span data-i18n="try.upload"></span></label>
+        <span class="note" data-i18n="try.drop"></span>
+        <p class="note" data-i18n="try.ownNote"></p>
+        <p class="note" data-i18n="try.privacy"></p>
+      </aside>
+    </div>
+
+    <h2 class="h3" data-i18n="try.howTitle"></h2>
+    <div class="cards" id="how"></div>
+  </section>
+</main>
+
+<footer>
+  <span data-i18n="foot.stack"></span>
+  <a href="index.html" data-i18n="nav.back"></a>
+</footer>
+
+<script src="assets/i18n.js"></script>
+<script src="assets/try.js"></script>
+</body>
+</html>

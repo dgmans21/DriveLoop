@@ -59,6 +59,50 @@
     $("#limits-list").innerHTML = t("lim.items").map((s) => `<li>${s}</li>`).join("");
     renderCompare();
     renderAcc();
+    renderPed();
+  }
+
+  // ---------- 보행자 ----------
+  let ped = null;
+  function renderPed() {
+    $("#ped").classList.toggle("hidden", !ped);
+    if (!ped) return;
+    const n = (v, d = 1, unit = "") => v == null ? "-" : `${Number(v).toFixed(d)}${unit}`;
+    const pct = (v) => v == null ? "-" : `${(v * 100).toFixed(1)}%`;
+    const kmh = (v) => v == null ? "-" : `${(v * 3.6).toFixed(0)} km/h`;
+    const fc = t("ped.finalCols"), sc = t("ped.scen"), pc = t("cmp.cols");
+    $("#ped-final").innerHTML = `<thead><tr>${fc.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>` +
+      ped.final.map((r) => {
+        const gt = r.perception === "gt";
+        return `<tr><td>${sc[r.scenario] || r.scenario}</td><td>${gt ? pc[1] : pc[2]}</td><td>${r.collisions}</td>` +
+          `<td>${n(r.min_gap, 1, " m")}</td><td>${r.hard}</td><td>${n(r.max_decel, 1, " m/s²")}</td><td>${kmh(r.min_speed)}</td>` +
+          `<td>${gt ? "-" : pct(r.miss)}</td><td>${gt ? "-" : n(r.first_seen, 0, " m")}</td></tr>`;
+      }).join("") + "</tbody>";
+    const ec = t("ped.evoCols"), what = t("ped.evoWhat");
+    const last = ped.versions.length - 1;
+    $("#ped-evo").innerHTML = `<thead><tr>${ec.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>` +
+      ped.versions.map((v, i) => `<tr><td>${v.name.replace("ped_scen_model_", "")}</td><td>${what[v.name] || ""}</td>` +
+        `<td>${v.collisions}</td><td class="${i === last ? "hl" : ""}">${v.hard_model}</td><td>${v.hard_gt ?? "-"}</td>` +
+        `<td>${n(v.max_decel_model, 1, " m/s²")}</td><td>${n(v.max_decel_gt, 1, " m/s²")}</td><td>${n(v.dart_gap, 1, " m")}</td></tr>`).join("") +
+      "</tbody>";
+    const k = t("ped.caseK");
+    $("#ped-cases").innerHTML = t("ped.cases").map(([h, a, b]) =>
+      `<article class="card"><h3>${h}</h3><dl><dt>${k[1]}</dt><dd>${a}</dd><dt>${k[2]}</dt><dd>${b}</dd></dl></article>`).join("");
+    const names = t("ped.clipNames");
+    $("#ped-clips").innerHTML = (ped.clips || []).map((c) =>
+      `<figure class="clip"><video src="${c.src}" poster="${c.poster || ""}" controls muted playsinline preload="none"></video>` +
+      `<figcaption>${names[c.scenario] || c.scenario} · ${t("cond." + c.condition)}</figcaption></figure>`).join("");
+    const det = ped.detect;
+    $("#ped-det-sub").textContent = det ? t("ped.detSub").replace("{n}", det.images) : "";
+    if (det) {
+      const dc = t("ped.detCols"), cls = t("ped.cls"), r3 = (v) => v.toFixed(3);
+      $("#ped-det").innerHTML = `<thead><tr>${dc.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>` +
+        det.same.map((r) => `<tr><td>${cls[r.cls] || r.cls}</td><td>${r3(r.old)}</td>` +
+          `<td class="${r.new > r.old ? "hl" : ""}">${r3(r.new)}</td><td>${r.old_fp} → ${r.new_fp}</td></tr>`).join("") + "</tbody>";
+      const zc = t("ped.sizeCols");
+      $("#ped-size").innerHTML = `<thead><tr>${zc.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>` +
+        det.ped_size.map((r) => `<tr><td>${r.bin}</td><td>${r3(r.recall)}</td><td>${r.n}</td></tr>`).join("") + "</tbody>";
+    }
   }
 
   // ---------- 앞차 따라가기 ----------
@@ -397,6 +441,7 @@
     try { index = await loadJSON("assets/drive/index.json"); } catch { index = []; }
     try { compare = await loadJSON("assets/compare.json"); } catch { compare = null; }
     try { acc = await loadJSON("assets/acc.json"); } catch { acc = null; }
+    try { ped = await loadJSON("assets/ped.json"); } catch { ped = null; }
     if (!index.some((i) => i.id === cond)) cond = index[0] ? index[0].id : cond;
     applyI18n();
     if (index.length) await selectCond(cond);
