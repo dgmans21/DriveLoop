@@ -1,0 +1,268 @@
+{
+ "versions": [
+  {
+   "name": "ped_scen_model_v1",
+   "runs": 40,
+   "collisions": 0,
+   "hard_model": 7,
+   "hard_gt": 0,
+   "max_decel_model": 21.6,
+   "max_decel_gt": 3.8,
+   "dart_gap": 8.9
+  },
+  {
+   "name": "ped_scen_model_v2",
+   "runs": 20,
+   "collisions": 0,
+   "hard_model": 4,
+   "hard_gt": null,
+   "max_decel_model": 15.6,
+   "max_decel_gt": null,
+   "dart_gap": 8.9
+  },
+  {
+   "name": "ped_scen_model_v3",
+   "runs": 40,
+   "collisions": 0,
+   "hard_model": 3,
+   "hard_gt": 4,
+   "max_decel_model": 12.5,
+   "max_decel_gt": 7.6,
+   "dart_gap": 7.4
+  },
+  {
+   "name": "ped_scen_model_v4",
+   "runs": 40,
+   "collisions": 0,
+   "hard_model": 0,
+   "hard_gt": 0,
+   "max_decel_model": 2.8,
+   "max_decel_gt": 3.0,
+   "dart_gap": 9.4
+  }
+ ],
+ "final": [
+  {
+   "scenario": "cross",
+   "perception": "gt",
+   "runs": 4,
+   "collisions": 0,
+   "min_gap": 9.42,
+   "hard": 0,
+   "max_decel": 2.1,
+   "min_speed": 0.73,
+   "yield_s": 3.9,
+   "miss": null,
+   "first_seen": null
+  },
+  {
+   "scenario": "cross",
+   "perception": "model",
+   "runs": 4,
+   "collisions": 0,
+   "min_gap": 6.62,
+   "hard": 0,
+   "max_decel": 2.72,
+   "min_speed": 0.0,
+   "yield_s": 3.39,
+   "miss": 0.01,
+   "first_seen": 19.32
+  },
+  {
+   "scenario": "stop",
+   "perception": "gt",
+   "runs": 4,
+   "collisions": 0,
+   "min_gap": 5.42,
+   "hard": 0,
+   "max_decel": 2.1,
+   "min_speed": 0.0,
+   "yield_s": 12.2,
+   "miss": null,
+   "first_seen": null
+  },
+  {
+   "scenario": "stop",
+   "perception": "model",
+   "runs": 4,
+   "collisions": 0,
+   "min_gap": 4.88,
+   "hard": 0,
+   "max_decel": 2.47,
+   "min_speed": 0.0,
+   "yield_s": 11.66,
+   "miss": 0.02,
+   "first_seen": 19.4
+  },
+  {
+   "scenario": "dartout",
+   "perception": "gt",
+   "runs": 4,
+   "collisions": 0,
+   "min_gap": 9.42,
+   "hard": 0,
+   "max_decel": 2.95,
+   "min_speed": 3.92,
+   "yield_s": 1.45,
+   "miss": null,
+   "first_seen": null
+  },
+  {
+   "scenario": "dartout",
+   "perception": "model",
+   "runs": 4,
+   "collisions": 0,
+   "min_gap": 9.42,
+   "hard": 0,
+   "max_decel": 2.79,
+   "min_speed": 2.85,
+   "yield_s": 1.84,
+   "miss": 0.0,
+   "first_seen": 46.9
+  },
+  {
+   "scenario": "curb",
+   "perception": "gt",
+   "runs": 4,
+   "collisions": 0,
+   "min_gap": null,
+   "hard": 0,
+   "max_decel": 2.52,
+   "min_speed": 2.8,
+   "yield_s": 0.0,
+   "miss": null,
+   "first_seen": null
+  },
+  {
+   "scenario": "curb",
+   "perception": "model",
+   "runs": 4,
+   "collisions": 0,
+   "min_gap": null,
+   "hard": 0,
+   "max_decel": 2.57,
+   "min_speed": 2.8,
+   "yield_s": 0.0,
+   "miss": 0.0,
+   "first_seen": 36.83
+  },
+  {
+   "scenario": "sidewalk",
+   "perception": "gt",
+   "runs": 4,
+   "collisions": 0,
+   "min_gap": null,
+   "hard": 0,
+   "max_decel": 0.36,
+   "min_speed": 7.51,
+   "yield_s": 0.0,
+   "miss": null,
+   "first_seen": null
+  },
+  {
+   "scenario": "sidewalk",
+   "perception": "model",
+   "runs": 4,
+   "collisions": 0,
+   "min_gap": null,
+   "hard": 0,
+   "max_decel": 0.36,
+   "min_speed": 7.51,
+   "yield_s": 0.0,
+   "miss": null,
+   "first_seen": 13.05
+  }
+ ],
+ "detect": {
+  "images": 814,
+  "same": [
+   {
+    "cls": "tl_red",
+    "old": 0.857,
+    "new": 0.897,
+    "old_fp": 441,
+    "new_fp": 258,
+    "n": 2920
+   },
+   {
+    "cls": "tl_yellow",
+    "old": 0.833,
+    "new": 0.91,
+    "old_fp": 91,
+    "new_fp": 50,
+    "n": 509
+   },
+   {
+    "cls": "tl_green",
+    "old": 0.946,
+    "new": 0.926,
+    "old_fp": 97,
+    "new_fp": 56,
+    "n": 649
+   },
+   {
+    "cls": "vehicle",
+    "old": 0.787,
+    "new": 0.801,
+    "old_fp": 283,
+    "new_fp": 277,
+    "n": 1086
+   }
+  ],
+  "ped_size": [
+   {
+    "bin": "160+ (<7m)",
+    "recall": 1.0,
+    "n": 27
+   },
+   {
+    "bin": "80–160 (7–14m)",
+    "recall": 0.94,
+    "n": 50
+   },
+   {
+    "bin": "40–80 (14–27m)",
+    "recall": 0.633,
+    "n": 221
+   },
+   {
+    "bin": "24–40 (27–45m)",
+    "recall": 0.477,
+    "n": 281
+   },
+   {
+    "bin": "<24 (45m+)",
+    "recall": 0.196,
+    "n": 179
+   }
+  ],
+  "ped_recall": 0.505,
+  "ped_phantom_v2src": 34
+ },
+ "clips": [
+  {
+   "scenario": "dartout",
+   "condition": "rain_night",
+   "src": "assets/ped/rain_night_dartout_s1_model.mp4",
+   "poster": "assets/ped/rain_night_dartout_s1_model.jpg"
+  },
+  {
+   "scenario": "stop",
+   "condition": "rain_night",
+   "src": "assets/ped/rain_night_stop_s1_model.mp4",
+   "poster": "assets/ped/rain_night_stop_s1_model.jpg"
+  },
+  {
+   "scenario": "cross",
+   "condition": "clear_noon",
+   "src": "assets/ped/clear_noon_cross_s1_model.mp4",
+   "poster": "assets/ped/clear_noon_cross_s1_model.jpg"
+  },
+  {
+   "scenario": "curb",
+   "condition": "clear_noon",
+   "src": "assets/ped/clear_noon_curb_s1_model.mp4",
+   "poster": "assets/ped/clear_noon_curb_s1_model.jpg"
+  }
+ ]
+}
