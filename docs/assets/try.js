@@ -4,7 +4,7 @@
   const ORT_VER = "1.20.1";
   const ORT_CDN = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ORT_VER}/dist/`;
   const CLS_VAR = { vehicle: "--vehicle", tl_red: "--tl-red", tl_yellow: "--tl-yellow", tl_green: "--tl-green", pedestrian: "--ped" };
-  const SHORT = { vehicle: "car", tl_red: "red", tl_yellow: "yellow", tl_green: "green", pedestrian: "person" };
+  const SHORT = { vehicle: "vehicle", tl_red: "red", tl_yellow: "yellow", tl_green: "green", pedestrian: "person" };
   const PAD = 114 / 255, IOU = 0.7, MIN_CONF = 0.05;
   const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 

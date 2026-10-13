@@ -137,6 +137,7 @@ window.I18N = {
       "카메라 거리의 경사 보정은 지도(도로 높이)와 시뮬레이터의 카메라 자세를 믿는다 — 실차는 측위 오차·차체 기울기(1~3°)가 있어 IMU·레이더 보완 필요. CARLA 차체 기울기는 측정상 0.13° 이하라 생략",
       "보행자는 연출한 시나리오 5개 × 날씨 4개, 보행자 1명씩으로 검증 (충돌 0, 급제동 0). 무리 지은 보행자·자전거·가려진 사람은 미검증. 모델 보행자 재현율은 27m 넘으면 0.2~0.48, 비 오는 밤 0.43 — 먼 사람은 늦게 확정하고 서행으로 보완. CARLA 보행자는 보이는 몸이 물리 몸체보다 늦게 움직여 정답값 인지가 실제보다 빠르다",
       "눈 날씨 미검증 — CARLA 0.9.16에 눈이 없음. 실제 데이터(sim-to-real)로 보완 계획",
+      "실제 도로 사진(서울, 차 안 블랙박스 시점)에 <a href=\"try.html\">직접 해 보기</a>로 넣어 본 결과: 승용차·SUV는 0.7~0.94로 잡았지만 시내버스와 배달 오토바이는 놓쳤고, 간판·볼라드를 신호등·사람으로 잘못 봤다. 실제 사진은 점수가 전반적으로 낮아 기준 0.10이 더 맞았다 — CARLA에 흔한 대상은 현실에서도 되고, 드물거나 생김새가 다른 대상은 안 된다. 사진 몇 장의 관찰이라 수치로 말하려면 실제 데이터 시험지가 필요 (sim-to-real 과제)",
       "남은 인지 약점: 아주 작은 신호(<12px) 재현율 0.68, 비 오는 밤 차량 0.70, 빨간불을 초록으로 본 경우 2,920개 중 3건 (5프레임 투표·빨강 우선 규칙이 걸러 주지만 기록)",
       "검증 규모: 빨간불 정지 52번에 위반 0 → 말할 수 있는 위반율 상한 약 5.8%. 차량·보행자가 다 들어갔으니 다음은 시드와 시나리오를 늘린 최종 검증 (D)"
     ],
@@ -320,6 +321,7 @@ window.I18N = {
       "Slope-corrected camera distance trusts the map's road height and the simulator's camera pose — real cars have localization error and 1–3° body pitch, needing an IMU and radar. CARLA body pitch measured below 0.13°, so it is skipped here",
       "Pedestrians are validated on five staged scenarios × four weathers with one person each (0 collisions, 0 hard brakes). Groups, cyclists and occluded people are not validated. Model pedestrian recall is 0.2–0.48 beyond 27 m and 0.43 in rain at night — distant people are confirmed late and covered by slowing down. In CARLA the visible body moves after the physics body, so ground-truth perception is faster than reality",
       "Snow not validated — CARLA 0.9.16 has no snow; to be covered with real data (sim-to-real)",
+      "Real road photos (Seoul, in-car dashcam view) run through <a href=\"try.html\">Try it</a>: cars and SUVs were found at 0.7–0.94, but a city bus and delivery motorbikes were missed, and shop signs and bollards were taken for lights and people. Scores ran lower overall, so the 0.10 threshold fit better. What is common in CARLA carries over; what is rare or looks different does not. These are a handful of photos — putting numbers on it needs a real-data test set (the sim-to-real stage)",
       "Remaining perception weak spots: tiny lights (<12 px) recall 0.68, vehicles in rain at night 0.70, 3 of 2,920 reds seen as green (filtered by the 5-frame vote and red-first rule, but recorded)",
       "Validation scale: 0 violations in 52 red stops only bounds the rate below ~5.8%. With vehicles and pedestrians in place, the next step is a final validation with more seeds and scenarios (D)"
     ],
